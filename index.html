@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Klaboš Doubles Trénink</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
 <style>
 :root{
   color-scheme:light;
@@ -141,7 +140,10 @@ input[type=email],input[type=password]{width:100%;font:inherit;padding:10px 12px
 .presets .chip small{font-size:12px;font-weight:600;color:var(--tx3)}
 @media (min-width:900px){.igrid{grid-template-columns:1.8fr 1fr}.presets .chip{font-size:18px}.presets .chip small{font-size:14px}}
 
-/* ===== Téma A: Neon Oche ===== */
+</style>
+<script>
+const THEMES={
+ a:{name:'A · Neon Oche',desc:'Tmavý, sportovní, zelená záře (výchozí)',font:'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap',prev:{bg:'#0A0E13',fg:'#E8EEF5',hit:'#2EE59D',hitTx:'#04130C',miss:'transparent',missTx:'#FF5468',missBd:'#FF5468'},css:`/* ===== Téma A: Neon Oche ===== */
 :root{color-scheme:dark;--bg:#0A0E13;--card:#121923;--line:#1E2A38;--grid:#1E2A38;--tx:#E8EEF5;--tx2:#B7C4D3;--tx3:#8EA0B5;--s1:#2EE59D;--s2:#FF5468;--btn:#2EE59D;--btntx:#04130C;--ring:#0A0E13;--ink:#E8EEF5;--bd-black:#0E141C;--bd-cream:#1B2735;--bd-red:#FF5468;--bd-green:#2EE59D}
 body{background:var(--bg);color:var(--tx);font-family:'Inter',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 h1,h2,.big,.target,.tile .v,.tab,.subtitle,.kicker{font-family:'Barlow Condensed','Arial Narrow',system-ui,sans-serif}
@@ -198,7 +200,130 @@ select,input[type=email],input[type=password]{background:var(--card);border:1px 
   .bdisc .target{font-size:124px}
   .kp .b,.pads4 .b{font-size:54px}
 }
-</style>
+
+@media (max-width:440px){.tab{font-size:15px;padding:10px 8px;letter-spacing:.03em}}
+`},
+ b:{name:'B · Terč',desc:'Klasické barvy terče na krémovém podkladu',font:'https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap',prev:{bg:'#F2E8D0',fg:'#141414',hit:'#1B7F4B',hitTx:'#FFFFFF',miss:'#C7192E',missTx:'#FFFFFF',missBd:'#C7192E'},css:`/* ===== Téma B: Terč ===== */
+:root{color-scheme:light;--bd-black:#141414;--bd-cream:#F2E8D0;--bd-red:#C7192E;--bd-green:#1B7F4B;--bg:#F2E8D0;--card:#FBF5E6;--line:#C9BC98;--grid:#E4D8B8;--tx:#141414;--tx2:#3F3A2E;--tx3:#5B5546;--s1:#1B7F4B;--s2:#C7192E;--btn:#1B7F4B;--btntx:#fff;--ring:#F2E8D0;--ink:#141414}
+body{font-family:'Source Sans 3',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:17px}
+h2,.big,.target,.tile .v,.tab{font-family:'Oswald','Arial Narrow',system-ui,sans-serif}
+h2{font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:18px}
+.banner{position:relative;overflow:hidden;background:#141414;color:#F2E8D0}
+.binner{position:relative;max-width:1180px;margin:0 auto;padding:16px 18px 18px}
+.bboard{position:absolute;right:-70px;top:-70px;width:230px;height:230px}
+.bboard svg{width:100%;height:100%;display:block}
+.kicker{font:500 12px/1 'Oswald',sans-serif;letter-spacing:.18em;text-transform:uppercase;opacity:.8}
+.banner h1{margin:8px 0 0;font:700 30px/1.05 'Oswald','Arial Narrow',sans-serif;text-transform:uppercase;letter-spacing:.02em;max-width:62%}
+.subtitle{color:#F2E8D0;margin:10px 0 0;font:600 22px/1.1 'Oswald','Arial Narrow',sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.subtitle::before{content:'';display:inline-block;width:12px;height:12px;border-radius:50%;background:#C7192E;margin-right:8px;vertical-align:1px}
+.tab{text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--tx2)}
+.tab[aria-selected=true]{color:var(--ink);border-bottom-color:var(--s2)}
+.tabs{border-bottom:2px solid var(--ink)}
+.card,.tile{background:var(--card);border:2px solid var(--ink);border-radius:14px}
+.card.verdict{border-left:8px solid var(--s2)}
+.note{background:#F6D9D3;border:1px solid #C7192E;color:var(--ink)}
+button.b{font-family:'Source Sans 3',system-ui,sans-serif;border-radius:12px}
+button.b.ghost,button.b.out{background:transparent;color:var(--ink);border-color:var(--ink)}
+button.b.miss{background:#C7192E;border-color:#C7192E;color:#fff}
+button.b.start{background:#C7192E;border-color:#C7192E;font:700 22px/1 'Oswald','Arial Narrow',sans-serif;letter-spacing:.06em;text-transform:uppercase}
+@keyframes pl{50%{box-shadow:0 0 0 5px rgba(199,25,46,.35)}}
+.pads4 .b,.kp .b{font-family:'Oswald','Arial Narrow',sans-serif}
+.pads4 .b small,.kp .b small{font-family:'Source Sans 3',system-ui,sans-serif}
+.chip{border-color:var(--ink);color:var(--ink);font-family:'Oswald','Arial Narrow',sans-serif;font-weight:600;letter-spacing:.02em}
+.chip.cur{background:var(--ink);color:#F2E8D0;border-color:var(--ink)}
+.chip.done{color:var(--tx3);border-color:var(--line)}
+.gp .card>.chips .chip.cur{background:#C7192E;border-color:#C7192E;color:#fff}
+.presets .chip small{color:var(--tx3)}
+.presets .chip.cur small{color:#F2E8D0}
+.bars .f{background:var(--s1)}
+.how{border-left-color:var(--s2)}
+.praise{background:linear-gradient(135deg,#141414,#C7192E);visibility:hidden}
+.praise.show{visibility:visible}
+select,input[type=email],input[type=password]{background:var(--card);border:2px solid var(--ink);color:var(--ink)}
+th{color:var(--tx3)}
+/* herní terč */
+.bwrap{position:relative;width:min(310px,82vw);aspect-ratio:1;margin:6px auto;--bd-black:#2B2B2B;--bd-cream:#E8DDBF;--bd-red:#B8707A;--bd-green:#6A9A82;--hl:#D81E2B;--hlg:#0E9F4B;--hls:#FFFFFF}
+.bsvg{position:absolute;inset:0;filter:drop-shadow(0 8px 14px rgba(20,20,20,.3))}
+.bsvg svg{display:block;width:100%;height:100%}
+.bdisc{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.bdisc .target{width:54%;height:54%;border-radius:50%;background:#F2E8D0;border:4px solid #141414;display:flex;align-items:center;justify-content:center;font-size:clamp(40px,15vw,72px);margin:0;font-weight:700;color:#141414;text-shadow:none}
+.bdisc.bull{align-items:flex-end;padding-bottom:6%}
+.bdisc.bull .target{width:auto;height:auto;border-radius:14px;padding:2px 14px;border-width:3px;font-size:clamp(34px,11vw,52px)!important}
+@media (min-width:768px){
+  .binner{padding:22px 28px 24px}
+  .banner h1{font-size:44px;max-width:60%}
+  .subtitle{font-size:30px}
+  .bboard{width:330px;height:330px;right:-90px;top:-90px}
+  .bwrap{width:410px}
+  .bdisc .target{font-size:100px}
+}
+@media (max-width:440px){.tab{font-size:15px;padding:10px 8px;letter-spacing:.03em}}
+`},
+ c:{name:'C · Čistý sport',desc:'Světlý, čistý, minimalistický, modrý akcent',font:'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap',prev:{bg:'#F4F6FA',fg:'#0B1220',hit:'#3B5BFF',hitTx:'#FFFFFF',miss:'#E7EBF3',missTx:'#0B1220',missBd:'#E7EBF3'},css:`/* ===== Téma C: Čistý sport ===== */
+:root{color-scheme:light;--bg:#F4F6FA;--card:#FFFFFF;--line:#DDE3EE;--grid:#E7EBF3;--tx:#0B1220;--tx2:#3A4558;--tx3:#5A6578;--s1:#3B5BFF;--s2:#E5202E;--btn:#3B5BFF;--btntx:#fff;--ring:#F4F6FA;--ink:#0B1220;--bd-black:#CBD3E3;--bd-cream:#EEF2F9;--bd-red:#F0C9CE;--bd-green:#C4E6D4}
+body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+h1,h2,.big,.target,.tile .v,.tab,.subtitle,.kicker{font-family:'Plus Jakarta Sans',system-ui,sans-serif}
+h2{font-size:16px;font-weight:800;text-transform:none;letter-spacing:-.01em}
+.banner{background:transparent;color:var(--tx)}
+.binner{max-width:1180px;margin:0 auto;padding:22px 18px 6px}
+.bboard,.kicker{display:none}
+.banner h1{margin:0;font:800 22px/1.1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.01em;display:flex;align-items:center;gap:10px;max-width:none}
+.banner h1::before{content:'';width:30px;height:30px;flex:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-104 -104 208 208' fill='none' stroke='%233B5BFF' stroke-width='7'%3E%3Ccircle r='98'/%3E%3Ccircle r='62'/%3E%3Ccircle r='40'/%3E%3Ccircle r='9' fill='%233B5BFF'/%3E%3C/svg%3E") center/contain no-repeat}
+.subtitle{color:var(--s1);margin:10px 0 0;font:800 15px/1 'Plus Jakarta Sans',sans-serif;background:#E8ECFF;display:inline-block;padding:7px 14px;border-radius:999px}
+.subtitle:empty{display:none}
+.tabs{border-bottom:0;background:#E7EBF3;border-radius:16px;padding:4px;gap:4px}
+.tab{flex:1;text-align:center;border:0;border-radius:12px;font-weight:700;color:var(--tx3);padding:10px 4px;font-size:15px}
+.tab[aria-selected=true]{background:#fff;color:var(--tx);box-shadow:0 2px 8px rgba(20,30,60,.12)}
+.card,.tile{background:var(--card);border:0;border-radius:20px;box-shadow:0 6px 24px rgba(20,30,60,.08)}
+.card.verdict{border-left:6px solid var(--s1)}
+.note{background:#FFE9EB;border:1px solid #F3B7BD;color:var(--tx)}
+button.b{font-family:'Plus Jakarta Sans',system-ui,sans-serif;border-radius:16px;color:#fff}
+button.b.ghost{background:#fff;color:var(--tx);border:1px solid var(--line)}
+button.b.out{background:#fff;color:var(--s1);border:1px solid var(--line)}
+button.b.miss{background:#E7EBF3;color:var(--tx);border-color:#E7EBF3}
+button.b.start{font:800 17px/1 'Plus Jakarta Sans',sans-serif;box-shadow:0 10px 24px rgba(59,91,255,.35)}
+@keyframes pl{50%{box-shadow:0 0 0 5px rgba(59,91,255,.35)}}
+.kp .b,.pads4 .b{font-size:32px;font-weight:800}
+.kp .b.miss,.pads4 .b.miss{font-size:20px}
+.chip{border:0;background:#EEF1F7;color:var(--tx3);font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-weight:700}
+.chip.cur{background:var(--s1);color:#fff}
+.chip.done{background:#EEF1F7}
+.presets{background:#E7EBF3;border-radius:16px;padding:4px;gap:4px}
+.presets .chip{background:transparent;border-radius:12px;color:var(--tx)}
+.presets .chip.cur{background:#fff;color:var(--tx);box-shadow:0 2px 8px rgba(20,30,60,.12)}
+.presets .chip small{color:var(--tx3)}
+.bars .f{background:var(--s1)}
+.how{border-left-color:var(--s1)}
+.praise{background:var(--s1);color:#fff;visibility:hidden}
+.praise.show{visibility:visible}
+select,input[type=email],input[type=password]{background:#fff;border:1px solid var(--line);color:var(--tx)}
+.bwrap{position:relative;width:min(300px,80vw);aspect-ratio:1;margin:6px auto;--hl:#E5202E;--hlg:#12A150;--hls:#3B5BFF}
+.bsvg{position:absolute;inset:0}
+.bsvg svg{display:block;width:100%;height:100%}
+.bdisc{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.bdisc.bull{align-items:flex-end;padding-bottom:7%}
+.bdisc.bull .target{font-size:clamp(40px,14vw,60px)!important}
+.bdisc .target{font-size:clamp(60px,22vw,96px);margin:0;font-weight:800;color:var(--tx);letter-spacing:-.03em;text-shadow:0 0 14px #fff,0 0 5px #fff}
+@media (min-width:768px){
+  .binner{padding:26px 28px 8px}
+  .banner h1{font-size:30px}
+  .subtitle{font-size:18px}
+  .bwrap{width:410px}
+  .bdisc .target{font-size:124px}
+  .kp .b,.pads4 .b{font-size:46px}
+}
+`}
+};
+function applyTheme(k){
+  const t=THEMES[k]||THEMES.a;
+  let st=document.getElementById('themecss');if(!st){st=document.createElement('style');st.id='themecss';document.head.appendChild(st);}
+  st.textContent=t.css;
+  let lk=document.getElementById('themefont');if(!lk){lk=document.createElement('link');lk.id='themefont';lk.rel='stylesheet';document.head.appendChild(lk);}
+  lk.href=t.font;document.documentElement.dataset.theme=k;
+}
+function getTheme(){try{const v=localStorage.getItem('darts_theme');return THEMES[v]?v:'a';}catch(e){return 'a';}}
+applyTheme(getTheme());
+</script>
 </head>
 <body>
 <header class="banner"><div class="bboard" id="bboard" aria-hidden="true"></div><div class="binner"><div class="kicker">Darts · doubles</div><h1>Klaboš Doubles Trénink</h1><div id="sub" class="subtitle"></div></div></header>
@@ -208,6 +333,7 @@ select,input[type=email],input[type=password]{background:var(--card);border:1px 
     <button class="tab" role="tab" data-tab="train">Trénink</button>
     <button class="tab" role="tab" data-tab="stats">Statistiky</button>
     <button class="tab" role="tab" data-tab="hist">Historie</button>
+    <button class="tab" role="tab" data-tab="style">Styl</button>
   </div>
   <div id="note"></div>
   <main id="main"></main>
@@ -399,7 +525,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 3. 11. 2026, 17:30 · vzhled A (Neon Oche), pole na terči v barvě terče, Dokončit, Opakovat, souhrn · zadávání po kole 1/2/3/Mimo · limity kol · nápověda Jak na to';
+const BUILD='verze 3. 11. 2026, 17:50';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -950,6 +1076,15 @@ function storageNote(){
   if(Store.mode==='db'&&!Store.fallback) return 'na serveru (soukromé jen pro vás)';
   return Cloud.ad?'jen v tomto prohlížeči (po přihlášení se budou ukládat do účtu)':'jen v tomto prohlížeči';
 }
+function renderStyle(){
+  const cur=getTheme();
+  const mini=(pv,n)=>`<span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:${pv.hit};color:${pv.hitTx};font:800 18px/1 system-ui,sans-serif">${n}</span>`;
+  return `<h2>Vzhled aplikace</h2><p class="muted" style="margin:0 0 6px">Zvolte styl. Nastavení se pamatuje v tomto zařízení.</p>`+Object.keys(THEMES).map(k=>{
+    const t=THEMES[k],pv=t.prev;
+    return `<div class="card"><div class="row spread"><div><b>${t.name}</b><div class="muted">${t.desc}</div></div>${k===cur?'<span class="chip cur">Aktivní</span>':`<button class="b sm" data-act="theme" data-v="${k}">Použít</button>`}</div>
+    <div style="background:${pv.bg};border:1px solid rgba(128,128,128,.4);border-radius:14px;padding:12px;display:flex;align-items:center;gap:10px;margin-top:10px"><span style="font:800 40px/1 'Arial Narrow',system-ui,sans-serif;color:${pv.fg}">D20</span><span style="display:flex;gap:6px;margin-left:auto">${[1,2,3].map(n=>mini(pv,n)).join('')}<span style="display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:38px;border-radius:10px;background:${pv.miss};color:${pv.missTx};border:2px solid ${pv.missBd};font:800 14px/1 system-ui,sans-serif">Mimo</span></span></div></div>`;
+  }).join('');
+}
 function renderHist(){
   const L=allSessions().reverse();
   let h='';
@@ -970,7 +1105,7 @@ function render(){
   {const sb=$('#sub');if(sb)sb.textContent=(run&&tab==='train'&&!g)?run.plan[run.phase].name:'';}
   if(g){$('#main').innerHTML=g==='loading'?'<div class="card muted">Načítám…</div>':'<div class="card muted">Přihlaste se, aby se tréninky ukládaly do vašeho účtu.</div>';renderAcct();return;}
   const m=$('#main');
-  m.innerHTML=tab==='train'?(run?renderTrainActive():renderTrainIdle()):tab==='stats'?renderStats():renderHist();
+  m.innerHTML=tab==='train'?(run?renderTrainActive():renderTrainIdle()):tab==='stats'?renderStats():tab==='style'?renderStyle():renderHist();
   after.forEach(f=>f());
   updTimers();
   renderAcct();
@@ -995,6 +1130,7 @@ document.addEventListener('click',async e=>{
     case 'sumshow':{const L=allSessions();if(L.length){const x=L[L.length-1];lastSummary=x.sum;sumTitle='Poslední trénink – '+fDL(x.s.ts);clearTimeout(sumT);}break;}
     case 'hdetail':histDetail=t.dataset.id;break;
     case 'hclose':histDetail=null;break;
+    case 'theme':{const v=t.dataset.v;if(THEMES[v]){try{localStorage.setItem('darts_theme',v);}catch(e){}applyTheme(v);}break;}
     case 'repeat':repeatPhase();break;
     case 'howtoggle':howOpen=!howOpen;break;
     case 'preset':{const pre=PRESETS[t.dataset.v].sel,same=pre.length===cfg.sel.length&&pre.every(x=>cfg.sel.includes(x));cfg.sel=(t.dataset.v==='all'&&same)?[]:pre.slice();lsSet('darts_cfg',cfg);break;}
