@@ -130,7 +130,7 @@ input[type=email],input[type=password]{width:100%;font:inherit;padding:10px 12px
 @media (min-width:768px){.how{font-size:17px;padding:6px 16px}}
 .subtitle{font-size:22px;font-weight:800;color:var(--s1);margin:-4px 0 8px}
 .subtitle:empty{display:none}
-.kp{display:grid;gap:12px;margin:12px 0}
+.kp .b.used{opacity:.25;filter:grayscale(1);cursor:default}.kp{display:grid;gap:12px;margin:12px 0}
 .k2{grid-template-columns:repeat(2,1fr)}.k3{grid-template-columns:repeat(3,1fr)}.k4{grid-template-columns:repeat(4,1fr)}
 .kp .b{min-height:84px;font-size:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
 .kp .b small{font-size:13px;font-weight:600;opacity:.85}
@@ -140,6 +140,16 @@ input[type=email],input[type=password]{width:100%;font:inherit;padding:10px 12px
 .presets .chip small{font-size:12px;font-weight:600;color:var(--tx3)}
 @media (min-width:900px){.igrid{grid-template-columns:1.8fr 1fr}.presets .chip{font-size:18px}.presets .chip small{font-size:14px}}
 
+.dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.dcol{display:flex;flex-direction:column;gap:8px;padding:6px;border-radius:16px;border:2px solid transparent}
+.dcol.cur{border-color:var(--s1)}
+.dh{text-align:center;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3)}
+.dcol.cur .dh{color:var(--tx)}
+.dbtn{min-height:64px;padding:8px 4px;font-size:17px;text-transform:uppercase;letter-spacing:.03em}
+.dcol.done .dbtn:not(.sel){opacity:.6}
+.dcol.fut .dbtn{opacity:1}
+button.dbtn:disabled{cursor:default}
+@media (min-width:768px){.dbtn{min-height:96px;font-size:26px}.dh{font-size:14px}}
 </style>
 <script>
 const THEMES={
@@ -525,7 +535,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 3. 11. 2026, 17:50';
+const BUILD='verze 3. 11. 2026, 21:40';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -637,7 +647,7 @@ function startRun(from){
   lastSummary=null;
   run=Object.assign({darts:[],phase:0,phaseStart:0,elapsed:0,fc:'b',startedAt:Date.now(),tt:20,tauto:false,timed:true,fb:'',groups:[],lim:{},tn:30,bneg:false,rep:{},extra:0},from||{});
   if(!run.plan||!run.plan.length) run.plan=buildPlan(cfg.sel,cfg.cn);
-  run.cn=run.cn||cfg.cn;run.cn0=run.cn0||run.cn; run.tfresh=false; run.phase=Math.min(run.phase,run.plan.length-1);
+  run.cn=run.cn||cfg.cn;run.cn0=run.cn0||run.cn;run.timed=false; run.tfresh=false; run.phase=Math.min(run.phase,run.plan.length-1);
   run.running=true; run.last=performance.now(); lastSummary=null; draftPending=null; saveDraft();
 }
 function curTarget(){
@@ -656,11 +666,33 @@ function commitMany(recs){const B=replay(run.darts);recs.forEach(r=>run.darts.pu
 function commit(rec){commitMany([rec]);}
 function ladderMode(id,r){return (id==='a'&&run.fb)?(r.fb==='y'?'dbl':(r.pend&&r.idx===2?'setup':'ladder')):'ladder';}
 function visitLabel(n){const pos=n%3;return 'kolo '+(Math.floor(n/3)+1)+' · '+(pos===2?'zbývá šipka 3':'šipky '+(pos+1)+'–3');}
+function visitRes(id,pos){
+  if(!pos) return [];
+  const codes=id==='a'?['a','ax','ay']:id==='b'?['b']:id==='r'?['r']:[];
+  const isT=id==='t';
+  return run.darts.filter(d=>{const c=d.split(':')[0];return isT?/^t\d*$/.test(c):codes.includes(c);}).slice(-pos).map(d=>d.split(':')[2]==='1');
+}
+function dgrid(){
+  const sel=run.tsel||[],cur=run.tcol==null?0:run.tcol;let c='';
+  for(let i=0;i<3;i++){
+    const r=sel[i],isc=i===cur;
+    c+=`<div class="dcol ${isc?'cur':r!==undefined?'done':'fut'}"><div class="dh">Šipka ${i+1}</div>
+      <button class="b dbtn${r===true?' sel':''}" data-act="dhit" data-c="${i}">Double</button>
+      <button class="b miss dbtn${r===false?' sel':''}" data-act="dmiss" data-c="${i}">Mimo</button></div>`;
+  }
+  return `<div class="dgrid">${c}</div>`;
+}
+function dartInput(hit,col){
+  const c=replay(run.darts).t.cur,n=c?c.n:0;
+  if(c&&c.n>=c.N&&!run.tfresh)return;
+  if(n%3===0||!run.tsel)run.tsel=[];
+  const k=col==null?n%3:col;run.tsel[k]=hit;run.tcol=k;
+  addT(hit);}
 function kpads(pos){
   const rem=3-pos;let b='';
-  for(let k=pos+1;k<=3;k++) b+=`<button class="b" data-act="vhit" data-k="${k}">${k}<small>šipka</small></button>`;
+  for(let k=1;k<=3;k++){const used=k<=pos;b+=`<button class="b${used?' used':''}" data-act="vhit" data-k="${k}"${used?' disabled':''}>${k}<small>${used?'odhozena':'šipka'}</small></button>`;}
   b+=`<button class="b miss" data-act="vmiss">Mimo<small>${rem}×</small></button>`;
-  return `<div class="kp k${rem+1}">${b}</div>`;
+  return `<div class="kp k4">${b}</div>`;
 }
 function visitInput(k){
   const id=run.plan[run.phase].id,R=replay(run.darts);let pos,ph,t;
@@ -747,22 +779,21 @@ function domain(vals,pad,lo,hi,step){
 /* ---------- pohledy: trénink ---------- */
 function planCard(){
   return `<div class="card"><b>Jak se jednotlivé bloky hrají</b>
-  <p class="muted" style="margin:6px 0 0"><b>Rozcvička (3 min):</b> volně rozhoďte ruku bez tlaku – házejte na T20 nebo na celý terč, třeba i na velké segmenty 20 a 16, a hledejte stejný postoj a pohyb jako při doublech. Nic se nezapisuje, po uplynutí času přepnete na další fázi.<br>
+  <p class="muted" style="margin:6px 0 0"><b>Rozcvička:</b> volně rozhoďte ruku bez tlaku – házejte na T20 nebo na celý terč, třeba i na velké segmenty 20 a 16, a hledejte stejný postoj a pohyb jako při doublech. Nic se nezapisuje, až budete hotovi, přepnete na další fázi.<br>
   <b>Řady:</b> šipku házíte na aktuální double. Zásah = posun na další double v řadě, minutí (i single) = zkoušíte znovu. U řady 20·10·5 můžete zapnout záchranu po minutí D5 (zbývá 5): single 1 a pak D2 (1+4), nebo single 3 a pak D1 (3+2), případně střídat. Pak házíte na D2/D1, dokud ho nezasáhnete, a průchod tím končí.<br>
   <b>Náhodná pětice:</b> aplikace vylosuje 5 různých doublů; každý musíte trefit alespoň jednou, počítají se šipky navíc.<br>
   <b>121 na 9 šipek:</b> zavřít 121 (double-out) nejvýš za 9 šipek, pokus se opakuje 5× nebo 10×. Zapisujete, na kolik šipek se to povedlo.<br>
   <b>Test šipek:</b> 10, 20, 30 nebo 40 šipek (zvolíte v nastavení) na jeden double, počet zásahů – větší vzorek pro poctivé srovnání. Double si zvolíte sami, tlačítkem „Náhodný double“ ho nechte vylosovat, nebo zapněte losování po každém testu.<br>
-  <b>Bob's 27:</b> začínáte na 27 bodech, na každý double D1 až Bull házíte 3 šipky – zásah přičte hodnotu doublu, 0 zásahů ji odečte. Bez časového limitu. Končí, když skóre klesne pod nulu; v nastavení lze zvolit, že se hraje dál i do mínusu.<br>
+  <b>Bob's 27:</b> začínáte na 27 bodech, na každý double D1 až Bull házíte 3 šipky – zásah přičte hodnotu doublu, 0 zásahů ji odečte. Končí, když skóre klesne pod nulu; v nastavení lze zvolit, že se hraje dál i do mínusu.<br>
   <b>Tlakový závěr:</b> hraje se jedna z řad (16·8·4·2·1 nebo 20·10·5, přepínač je v bloku, výchozí je 16·8·4·2·1) a začíná se od jejího prvního doublu (D16 / D20), ne od D1. V každém kole máte 3 šipky na aktuální double: zásah = postup na další double v řadě (kolo končí), 3× mimo = o jeden stupeň zpět (na úplném začátku zůstanete). Počítá se nejvyšší dosažená úroveň a počet dokončených celých řad; po zavření celé řady se začíná znovu od začátku.<br>
   <b>Pochvaly:</b> za bezchybný pokus (čistá řada, závěr bez kroku zpět, pětka z pěti, 121 na 3 šipky nebo všechny pokusy zavřené, všechny šipky testu trefené, Bob's 27 bez prázdného kola) se krátce objeví hláška. Klepnutím ji zavřete.</p></div>`;
 }
 function cfgCard(){
-  const tot=planMin(buildPlan(cfg.sel,cfg.cn)),same=k=>PRESETS[k].sel.length===cfg.sel.length&&PRESETS[k].sel.every(x=>cfg.sel.includes(x));
+  const same=k=>PRESETS[k].sel.length===cfg.sel.length&&PRESETS[k].sel.every(x=>cfg.sel.includes(x));
   return `<div class="card"><b>Složení tréninku</b>
-  <div class="chips presets">${Object.keys(PRESETS).map(k=>`<button class="chip ${same(k)?'cur':''}" data-act="preset" data-v="${k}">${PRESETS[k].label}<small>${planMin(buildPlan(PRESETS[k].sel,cfg.cn))} min</small></button>`).join('')}</div>
-  ${PHASEDEF.map(p=>`<div class="blk"><label class="blkl"><input type="checkbox" data-cfg="${p.id}" ${cfg.sel.includes(p.id)?'checked':''}><span>${p.id==='t'?'Test '+(cfg.tn||30)+' šipek':p.name}</span></label>${p.id==='a'?`<span class="muted">po minutí D5:</span><select data-fb><option value="" ${!cfg.fb?'selected':''}>znovu D5</option><option value="12" ${cfg.fb==='12'?'selected':''}>S1 → D2</option><option value="31" ${cfg.fb==='31'?'selected':''}>S3 → D1</option><option value="alt" ${cfg.fb==='alt'?'selected':''}>střídat</option></select>`:''}${LIMOPT[p.id]?`<span class="muted">limit:</span><select data-lim="${p.id}">${LIMOPT[p.id].map(n=>`<option value="${n}" ${cfg.lim[p.id]===n?'selected':''}>${n?n+(p.id==='r'?(n<5?' pětice':' pětic'):(n<5?' kola':' kol')):'bez limitu'}</option>`).join('')}</select>`:''}${p.id==='c'?`<span class="muted">pokusů:</span><button class="chip ${cfg.cn===5?'cur':''}" data-act="cn" data-v="5">5</button><button class="chip ${cfg.cn===10?'cur':''}" data-act="cn" data-v="10">10</button>`:''}${p.id==='k'?`<span class="muted">pod nulou:</span><select data-bneg><option value="" ${!cfg.bneg?'selected':''}>konec hry</option><option value="1" ${cfg.bneg?'selected':''}>do mínusu</option></select>`:''}${p.id==='t'?`<span class="muted">šipek:</span><select data-tn>${[10,20,30,40].map(n=>`<option value="${n}" ${(cfg.tn||30)===n?'selected':''}>${n}</option>`).join('')}</select>`:''}<span class="muted" style="min-width:48px;text-align:right">${p.id==='k'?'bez času':(p.id==='c'?cfg.cn:(p.id==='t'?Math.round((cfg.tn||30)/5):p.min))+' min'}</span></div>`).join('')}
-  <div class="blk"><label class="blkl"><input type="checkbox" data-timed ${cfg.timed!==false?'checked':''}><span>Měřit čas (časovač)</span></label></div>
-  <p class="muted" style="margin:8px 0 0">${cfg.timed!==false?`Celkem <b>${tot} min</b>`:`Čas se neměří, uvedené minuty jsou jen orientační (celkem ${tot} min)`}</p></div>`;
+  <div class="chips presets">${Object.keys(PRESETS).map(k=>`<button class="chip ${same(k)?'cur':''}" data-act="preset" data-v="${k}">${PRESETS[k].label}<small>${PRESETS[k].sel.length} her</small></button>`).join('')}</div>
+  ${PHASEDEF.map(p=>`<div class="blk"><label class="blkl"><input type="checkbox" data-cfg="${p.id}" ${cfg.sel.includes(p.id)?'checked':''}><span>${p.id==='t'?'Test '+(cfg.tn||30)+' šipek':p.name}</span></label>${p.id==='a'?`<span class="muted">po minutí D5:</span><select data-fb><option value="" ${!cfg.fb?'selected':''}>znovu D5</option><option value="12" ${cfg.fb==='12'?'selected':''}>S1 → D2</option><option value="31" ${cfg.fb==='31'?'selected':''}>S3 → D1</option><option value="alt" ${cfg.fb==='alt'?'selected':''}>střídat</option></select>`:''}${LIMOPT[p.id]?`<span class="muted">limit:</span><select data-lim="${p.id}">${LIMOPT[p.id].map(n=>`<option value="${n}" ${cfg.lim[p.id]===n?'selected':''}>${n?n+(p.id==='r'?(n<5?' pětice':' pětic'):(n<5?' kola':' kol')):'bez limitu'}</option>`).join('')}</select>`:''}${p.id==='c'?`<span class="muted">pokusů:</span><button class="chip ${cfg.cn===5?'cur':''}" data-act="cn" data-v="5">5</button><button class="chip ${cfg.cn===10?'cur':''}" data-act="cn" data-v="10">10</button>`:''}${p.id==='k'?`<span class="muted">pod nulou:</span><select data-bneg><option value="" ${!cfg.bneg?'selected':''}>konec hry</option><option value="1" ${cfg.bneg?'selected':''}>do mínusu</option></select>`:''}${p.id==='t'?`<span class="muted">šipek:</span><select data-tn>${[10,20,30,40].map(n=>`<option value="${n}" ${(cfg.tn||30)===n?'selected':''}>${n}</option>`).join('')}</select>`:''}</div>`).join('')}
+  <p class="muted" style="margin:8px 0 0">Vybráno her: <b>${cfg.sel.length}</b> z ${PHASEDEF.length}</p></div>`;
 }
 function summaryCard(s,title,closeAct){
   return `<div class="card verdict"><div class="row spread"><b>${title}</b><button class="b ghost sm" data-act="${closeAct}" aria-label="Zavřít souhrn">Zavřít</button></div><p style="margin:6px 0 0">Šipek: <b>${s.n}</b> · zásahy doublů: <b>${fP(pc(s.h,s.n))}</b><br>Průchody řady 20·10·5: <b>${s.runsA.length}</b>${s.runsA.length?` (Ø ${fN(avg(s.runsA))} šipek)`:''}${s.fbRunsA?`, z toho přes záchranu ${s.fbRunsA}×`:''}<br>Průchody řady 16·8·4·2·1: <b>${s.runsB.length}</b>${s.runsB.length?` (Ø ${fN(avg(s.runsB))} šipek)`:''}<br>Bob's 27: ${bobTxt(s)}<br>Náhodná pětice: ${s.randSets.length?`<b>${s.randSets.length}</b>× (Ø ${fN(avg(s.randSets))} šipek)`:'—'}<br>121: ${s.cTries?`zavřeno <b>${s.cSucc}/${s.cTries}</b>`:'—'}<br>Test šipek: ${s.tests.length?s.tests.map(t=>bl(t.t)+' '+t.h+'/'+t.n).join(', '):'—'}<br>Závěr – dosažená úroveň: 20-řada ${s.finA==null?'—':Math.round(s.finA)+' %'}, 16-řada ${s.finB==null?'—':Math.round(s.finB)+' %'}</p></div>`;
@@ -773,20 +804,16 @@ function renderTrainIdle(){
   if(draftPending){
     h+=`<div class="card"><b>Rozpracovaný trénink</b><p class="muted" style="margin:4px 0 10px">${draftPending.darts.length} šipek, ${fT(draftPending.elapsed)} odtrénováno.</p><div class="row"><button class="b" data-act="resume">Pokračovat</button><button class="b ghost" data-act="discard-draft">Zahodit</button></div></div>`;
   }
-  h+=cfgCard()+`<div class="row" style="margin:12px 0"><button class="b start" data-act="start" style="width:100%;min-height:64px">▶ Začít trénink (${cfg.timed!==false?planMin(buildPlan(cfg.sel,cfg.cn))+' min':'bez časovače'})</button></div>${(!lastSummary&&Store.sessions.length)?'<div class="row" style="margin:0 0 12px"><button class="b ghost sm" data-act="sumshow">Souhrn posledního tréninku</button></div>':''}`;
+  h+=cfgCard()+`<div class="row" style="margin:12px 0"><button class="b start" data-act="start" style="width:100%;min-height:64px">▶ Začít trénink</button></div>${(!lastSummary&&Store.sessions.length)?'<div class="row" style="margin:0 0 12px"><button class="b ghost sm" data-act="sumshow">Souhrn posledního tréninku</button></div>':''}`;
   return `<div class="igrid"><div>${h}</div><div><button class="b ghost" data-act="howtoggle" style="width:100%" aria-expanded="${howOpen}">ℹ️ Jak na to ${howOpen?'▲':'▼'}</button>${howOpen?planCard():''}</div></div>`;
 }
 function renderTrainActive(){
   const ph=run.plan[run.phase],id=ph.id,R=replay(run.darts),LASTI=run.plan.length-1;
-  const T=`<div class="card"><div class="row spread">
-    <div><span class="lbl">Celkem zbývá</span><span class="big" id="tTot"></span></div>
-    <div><span class="lbl">Fáze zbývá</span><span class="big" id="tPh"></span></div>
-    <button class="b out sm" data-act="pause">${run.running?'⏸ Pauza':'▶ Pokračovat'}</button></div>
-    <div id="done" class="note" style="display:none">⏱ ${planMin(run.plan)} minut uběhlo – ukončete a uložte trénink.</div></div>`;
+  const T='';
   const C=`<div class="chips plan">${run.plan.map((p,i)=>`<button class="chip ${i===run.phase?'cur':''}" data-act="goto" data-i="${i}">${p.name}</button>`).join('')}</div>`;
   let h='';
   if(id==='w'){
-    h+=`<div class="card"><b>Rozcvička – ${ph.min} min</b><p>Rozhoďte ruku na T20 nebo na celý terč. Nic se nezapisuje. Pak přejděte na další fázi.</p></div>`;
+    h+=`<div class="card"><b>Rozcvička</b><p>Rozhoďte ruku na T20 nebo na celý terč. Nic se nezapisuje. Pak přejděte na další fázi.</p></div>`;
   }else if(id==='a'||id==='b'){
     const L=LADDERS[id],r=R[id];
     const mode=ladderMode(id,r);
@@ -845,7 +872,7 @@ function renderTrainActive(){
       h+=`<div class="target" style="font-size:52px">${c.h}/${c.n}</div><p style="text-align:center">Test na ${bl(c.t)}: <b>${fP(pc(c.h,c.n))}</b> (95% interval ${fN(lo,0)}–${fN(hi,0)} %).</p><div class="row" style="justify-content:center"><button class="b" data-act="tnext">Další test</button></div>`;
     }else{
       const n=inprog?c.n:0,hh=inprog?c.h:0;
-      h+=`<div class="target">${bl(tg)}</div><div class="muted" style="text-align:center">šipka ${n+1}/${N} · zásahy ${hh}${n?` · ${fP(pc(hh,n))}`:''}</div>${pads('thit','tmiss')}`;
+      h+=`<div class="target">${bl(tg)}</div><div class="muted" style="text-align:center">šipka ${n+1}/${N} · zásahy ${hh}${n?` · ${fP(pc(hh,n))}`:''}</div>${dgrid()}`;
     }
     h+=`<div class="muted">Dokončených testů: <b>${T.tests.filter(x=>x.n>=x.N).length}</b>. Jeden test má velký rozptyl – sledujte průměr více testů.</div></div>`;
   }else if(id==='k'){
@@ -878,14 +905,14 @@ function renderTrainActive(){
     :`<div class="row spread" style="margin-top:8px">${undoBtn}<button class="b out ${pul}" id="nextBtn" data-act="next">Další fáze ▶</button></div>
     ${repBtn?`<div style="margin-top:10px">${repBtn.replace('class="b out"','class="b out" style="width:100%"')}</div>`:''}
     <div class="row" style="margin-top:14px"><button class="b" data-act="finish">Ukončit a uložit</button><button class="b ghost" data-act="abort">Zahodit</button></div>`;
-  return `<div class="tgrid"><div class="gt">${run.timed===false?'<div class="card"><span class="lbl">Režim</span><b>Bez časovače</b> <span class="muted">– fáze přepínáte ručně</span></div>':T}</div><div class="gc">${C}</div><div class="gp">${howBox(id)}${limitHtml()}${boardize(h)}</div><div class="gf">${F}</div></div>`;
+  return `<div class="tgrid"><div class="gt">${T}</div><div class="gc">${C}</div><div class="gp">${howBox(id)}${limitHtml()}${boardize(h)}</div><div class="gf">${F}</div></div>`;
 }
 function canRepeat(id){if(id==='w') return false;if(['a','b','r','f'].includes(id)) return !!(run.lim||{})[id];return true;}
 function repeatPhase(){
   const id=run.plan[run.phase].id;
   if(id==='a'||id==='b'||id==='r'||id==='f'){run.rep=run.rep||{};run.rep[id]=(run.rep[id]||0)+1;}
   else if(id==='c'){run.cn+=(run.cn0||run.cn);}
-  else if(id==='t'){run.tfresh=true;if(run.tauto)run.tt=randDbl(run.tt);}
+  else if(id==='t'){run.tfresh=true;run.tsel=null;run.tcol=null;if(run.tauto)run.tt=randDbl(run.tt);}
   else if(id==='k'){commit(kcode()+':0:0');return;}
   const m=run.plan[run.phase].min;if(m>0){run.phaseStart=run.elapsed;run.extra=(run.extra||0)+m*60000;}
   saveDraft();
@@ -912,7 +939,7 @@ function howBox(id){
     r:'Aplikace vylosuje 5 různých doublů. Každý musíte trefit alespoň jednou, házíte na ně postupně. Cíl: co nejméně šipek. Po každém kole zadáte, která šipka (1–3) trefila, nebo Mimo; aplikace si pamatuje, na kolikátou šipku u doublu to bylo. Učíte se zasáhnout i doubly, které normálně netrénujete.',
     c:'Zavřít 121 bodů nejvýš za 9 šipek (3 kola) a skončit na double, třeba T20, T11, D14. Zapisujete, na kolik šipek se to povedlo, nebo že ne. Cíl: co nejvíc zavřených pokusů a co nejméně šipek.',
     t:'Čisté měření: '+(run.tn||30)+' šipek na jeden double a počet zásahů. Každou šipku zadáte jako ✓ Double nebo ✗ Mimo. Velký vzorek ukáže skutečnou úspěšnost a časem i to, jestli se zlepšujete. Double si zvolte, nebo nechte vylosovat.',
-    k:'Klasická hra na doubly: začínáte na 27 bodech a na každý double od D1 po Bull házíte 3 šipky. Každý zásah přičte hodnotu doublu (D8 = 16), 0 zásahů ji odečte. '+(run.bneg?'Skóre smí klesnout i pod nulu a hra pokračuje, zásahy ho zase zvyšují. Končí se až po Bullu, takže jde o konečné skóre.':'Pod nulou konec. Cíl: dojít co nejdál a s co nejvyšším skóre.')+' Hra nemá časový limit.',
+    k:'Klasická hra na doubly: začínáte na 27 bodech a na každý double od D1 po Bull házíte 3 šipky. Každý zásah přičte hodnotu doublu (D8 = 16), 0 zásahů ji odečte. '+(run.bneg?'Skóre smí klesnout i pod nulu a hra pokračuje, zásahy ho zase zvyšují. Končí se až po Bullu, takže jde o konečné skóre.':'Pod nulou konec. Cíl: dojít co nejdál a s co nejvyšším skóre.')+'',
     f:'Tlak jako v zápase: 3 šipky na aktuální double řady. Zásah = postup na další, 3× mimo = o stupeň zpět. Cíl: zavřít celou řadu bez kroku zpět (to se odměňuje pochvalou). Po každém kole klepnete, která šipka (1–3) trefila, nebo Mimo.'
   };
   return T[id]?`<div class="how"><b>O co jde:</b> ${T[id]}</div>`:'';
@@ -1125,7 +1152,7 @@ document.addEventListener('click',async e=>{
       else{try{await Cloud.ad.reset(acct.email);acct.msg='Pokud pro tento e-mail existuje účet, poslali jsme na něj odkaz pro nové heslo.';}catch(err){acct.msg=authMsg(err);}}
       renderAcct();return;}
     case 'acct-upload':try{await Store.uploadLocal();flash('Tréninky z tohoto zařízení jsou v účtu.');}catch(err){flash('Nahrání se nepovedlo, zkuste to později.');}renderAcct();break;
-    case 'start':if(!cfg.sel.length){flash('Vyberte alespoň jednu fázi.');return;}startRun({plan:buildPlan(cfg.sel,cfg.cn),cn:cfg.cn,timed:cfg.timed!==false,fb:cfg.fb||'',lim:Object.assign({},cfg.lim),tn:cfg.tn||30,bneg:!!cfg.bneg});break;
+    case 'start':if(!cfg.sel.length){flash('Vyberte alespoň jednu fázi.');return;}startRun({plan:buildPlan(cfg.sel,cfg.cn),cn:cfg.cn,timed:false,fb:cfg.fb||'',lim:Object.assign({},cfg.lim),tn:cfg.tn||30,bneg:!!cfg.bneg});break;
     case 'sumclose':lastSummary=null;break;
     case 'sumshow':{const L=allSessions();if(L.length){const x=L[L.length-1];lastSummary=x.sum;sumTitle='Poslední trénink – '+fDL(x.s.ts);clearTimeout(sumT);}break;}
     case 'hdetail':histDetail=t.dataset.id;break;
@@ -1146,7 +1173,7 @@ document.addEventListener('click',async e=>{
     case 'cfail':addC(9,false);return;
     case 'thit':addT(true);return;
     case 'tmiss':addT(false);return;
-    case 'tnext':run.tfresh=true;if(run.tauto)run.tt=randDbl(run.tt);saveDraft();break;
+    case 'tnext':run.tfresh=true;run.tsel=null;run.tcol=null;if(run.tauto)run.tt=randDbl(run.tt);saveDraft();break;
     case 'trand':run.tt=randDbl(run.tt);saveDraft();break;
     case 'tauto':run.tauto=!run.tauto;if(run.tauto){const c=replay(run.darts).t.cur;if(!(c&&c.n>0&&c.n<c.N))run.tt=randDbl(run.tt);}saveDraft();break;
     case 'resume':startRun(draftPending);run.running=false;break;
@@ -1159,6 +1186,8 @@ document.addEventListener('click',async e=>{
     case 'hit':addDart(true);return;
     case 'miss':addDart(false);return;
     case 'undo':{const g=run.groups&&run.groups.pop();run.darts.splice(-(g||1));saveDraft();break;}
+    case 'dhit':dartInput(true,+t.dataset.c);return;
+    case 'dmiss':dartInput(false,+t.dataset.c);return;
     case 'vhit':visitInput(+t.dataset.k);return;
     case 'vmiss':visitInput(0);return;
     case 'fc':run.fc=t.dataset.v;saveDraft();break;
