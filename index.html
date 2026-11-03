@@ -124,6 +124,10 @@ textarea{width:100%;min-height:90px;background:var(--card);color:var(--tx);borde
 @media (min-width:768px){.praise b{font-size:42px}.praise span{font-size:21px}.praise{padding:20px 34px}}
 @media (prefers-reduced-motion:reduce){.praise{transition:none}}
 input[type=email],input[type=password]{width:100%;font:inherit;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--tx);margin:2px 0 8px;min-height:44px}
+.gated .tabs{display:none}
+.how{border-left:3px solid var(--s1);padding:4px 12px;margin:0 0 10px;font-size:14px;color:var(--tx2)}
+.how b{color:var(--tx)}
+@media (min-width:768px){.how{font-size:17px;padding:6px 16px}}
 </style>
 </head>
 <body>
@@ -316,14 +320,16 @@ async function makeFirebase(cfg){
     remove:id=>Fs.deleteDoc(Fs.doc(db,'users',uid(),'sessions',id))
   };
 }
-const Cloud={ad:null,user:null,
+const Cloud={ad:null,user:null,authKnown:false,failed:false,
+  get cfgOn(){return !!(window.__cloudAdapter||FIREBASE_CONFIG);},
   async init(){
     try{
       if(window.__cloudAdapter) this.ad=window.__cloudAdapter;
-      else if(FIREBASE_CONFIG) this.ad=await makeFirebase(FIREBASE_CONFIG);
+      else if(FIREBASE_CONFIG) this.ad=await Promise.race([makeFirebase(FIREBASE_CONFIG),new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),10000))]);
     }catch(e){this.ad=null;}
-    if(this.ad) this.ad.onUser(u=>{this.user=u;onUserChange();});
-    renderAcct();
+    if(!this.ad){this.failed=this.cfgOn;render();return;}
+    this.ad.onUser(u=>{this.user=u;this.authKnown=true;onUserChange();});
+    setTimeout(()=>{if(!this.authKnown){this.failed=true;render();}},10000);
   }
 };
 async function onUserChange(){
@@ -347,25 +353,31 @@ function authMsg(e){
   return 'Akce se nepovedla. Zkuste to znovu.';
 }
 function pendingHtml(){const n=Store.pendingLocal();return n?`<div class="note">V tomto zařízení je ${n} trénink${n>1?(n<5?'y':'ů'):''}, které nejsou v účtu. <button class="b sm" data-act="acct-upload">Nahrát do účtu</button></div>`:'';}
-function renderAcct(){
-  const el=$('#acct');if(!el) return;
-  const sig=JSON.stringify([!!Cloud.ad,Cloud.user&&Cloud.user.email,acct,Store.pendingLocal()]);
-  if(sig===acctSig) return; acctSig=sig;
-  let h='';
-  if(Cloud.ad){
-    if(Cloud.user){
-      h=`<button class="chip" data-act="acct-open">👤 ${esc(Cloud.user.email||'účet')}</button>`;
-      if(acct.open) h+=`<div class="card"><b>Přihlášen: ${esc(Cloud.user.email||'')}</b><p class="muted" style="margin:6px 0">Tréninky se ukládají do vašeho účtu a uvidíte je na každém zařízení po přihlášení.</p>${pendingHtml()}<div class="row"><button class="b ghost sm" data-act="acct-out">Odhlásit se</button><button class="b ghost sm" data-act="acct-open">Zavřít</button></div></div>`;
-      else h+=pendingHtml();
-    }else{
-      h=`<button class="chip" data-act="acct-open">👤 Přihlásit se</button>`;
-      if(acct.open) h+=`<form class="card" id="acctform"><div class="row"><button type="button" class="chip ${acct.mode==='in'?'cur':''}" data-act="acct-mode" data-v="in">Přihlášení</button><button type="button" class="chip ${acct.mode==='up'?'cur':''}" data-act="acct-mode" data-v="up">Registrace</button></div>
+function gateState(){
+  if(!Cloud.cfgOn||Cloud.failed) return null;
+  if(!Cloud.authKnown) return 'loading';
+  return Cloud.user?null:'gate';
+}
+function acctForm(gated){
+  return `<form class="card" id="acctform">${gated?'<b>Pro používání aplikace se přihlaste</b><p class="muted" style="margin:4px 0 8px">Tréninky se ukládají do vašeho účtu a uvidíte je na každém zařízení.</p>':''}<div class="row"><button type="button" class="chip ${acct.mode==='in'?'cur':''}" data-act="acct-mode" data-v="in">Přihlášení</button><button type="button" class="chip ${acct.mode==='up'?'cur':''}" data-act="acct-mode" data-v="up">Registrace</button></div>
         <label class="muted" for="aem">E-mail</label><input id="aem" type="email" autocomplete="email" required value="${esc(acct.email||'')}">
         <label class="muted" for="apw">Heslo${acct.mode==='up'?' (minimálně 8 znaků)':''}</label><input id="apw" type="password" autocomplete="${acct.mode==='up'?'new-password':'current-password'}" required>
         ${acct.msg?`<div class="note">${esc(acct.msg)}</div>`:''}
-        <div class="row" style="margin-top:8px"><button class="b" type="submit" ${acct.busy?'disabled':''}>${acct.mode==='up'?'Vytvořit účet':'Přihlásit se'}</button>${acct.mode==='in'?'<button type="button" class="b ghost sm" data-act="acct-reset">Zapomenuté heslo</button>':''}<button type="button" class="b ghost sm" data-act="acct-open">Zavřít</button></div>
-        <p class="muted" style="margin:8px 0 0">Po přihlášení se tréninky ukládají do účtu a uvidíte je na každém zařízení.</p></form>`;
-    }
+        <div class="row" style="margin-top:8px"><button class="b" type="submit" ${acct.busy?'disabled':''}>${acct.mode==='up'?'Vytvořit účet':'Přihlásit se'}</button>${acct.mode==='in'?'<button type="button" class="b ghost sm" data-act="acct-reset">Zapomenuté heslo</button>':''}</div></form>`;
+}
+function renderAcct(){
+  const el=$('#acct');if(!el) return;
+  const g=gateState();
+  const sig=JSON.stringify([!!Cloud.ad,Cloud.user&&Cloud.user.email,acct,Store.pendingLocal(),g,!!Cloud.failed]);
+  if(sig===acctSig) return; acctSig=sig;
+  let h='';
+  if(g==='gate') h=acctForm(true);
+  else if(g==='loading') h='';
+  else if(Cloud.failed) h=`<div class="note">Přihlášení teď není dostupné (jste offline?). Tréninky se uloží jen v tomto zařízení. <button class="b ghost sm" data-act="reload">Zkusit znovu</button></div>`;
+  else if(Cloud.ad&&Cloud.user){
+    h=`<button class="chip" data-act="acct-open">👤 ${esc(Cloud.user.email||'účet')}</button>`;
+    if(acct.open) h+=`<div class="card"><b>Přihlášen: ${esc(Cloud.user.email||'')}</b><p class="muted" style="margin:6px 0">Tréninky se ukládají do vašeho účtu a uvidíte je na každém zařízení po přihlášení.</p>${pendingHtml()}<div class="row"><button class="b ghost sm" data-act="acct-out">Odhlásit se</button><button class="b ghost sm" data-act="acct-open">Zavřít</button></div></div>`;
+    else h+=pendingHtml();
   }
   el.innerHTML=h;
 }
@@ -605,7 +617,19 @@ function renderTrainActive(){
     <button class="b ghost sm" data-act="undo" ${run.darts.length?'':'disabled'}>↩ Zpět poslední zadání</button>
     <button class="b out" id="nextBtn" data-act="next" ${run.phase>=LASTI?'disabled':''}>Další fáze ▶</button></div>
     <div class="row" style="margin-top:14px"><button class="b" data-act="finish">💾 Ukončit a uložit</button><button class="b ghost" data-act="abort">Zahodit</button></div>`;
-  return `<div class="tgrid"><div class="gt">${run.timed===false?'<div class="card"><span class="lbl">Režim</span><b>Bez časovače</b> <span class="muted">– fáze přepínáte ručně</span></div>':T}</div><div class="gc">${C}</div><div class="gp">${h}</div><div class="gf">${F}</div></div>`;
+  return `<div class="tgrid"><div class="gt">${run.timed===false?'<div class="card"><span class="lbl">Režim</span><b>Bez časovače</b> <span class="muted">– fáze přepínáte ručně</span></div>':T}</div><div class="gc">${C}</div><div class="gp">${howBox(id)}${h}</div><div class="gf">${F}</div></div>`;
+}
+function howBox(id){
+  const T={
+    a:'Doubly, na které se posouváte, když místo doublu trefíte single (40 → 20 → 10 bodů). Házíte postupně na D20, D10 a D5: zásah = další double, minutí = zkoušíte znovu. Cíl: projít celou řadu na co nejméně šipek.'+(run.fb?' Když nevyjde D5, zbývá 5 bodů: nejdřív single 1 a pak D2 (nebo single 3 a pak D1) – zasahujte ten double, dokud nesedne.':''),
+    b:'Stejné jako předchozí řada, jen z 32 bodů: D16 → D8 → D4 → D2 → D1 (minutý double do singlu vám nechá přesně polovinu). Zásah = další double, minutí = znovu. Cíl: projít řadu na co nejméně šipek.',
+    r:'Aplikace vylosuje 5 různých doublů. Každý musíte trefit alespoň jednou, házíte na ně postupně. Cíl: co nejméně šipek. Učíte se zasáhnout i doubly, které normálně netrénujete.',
+    c:'Zavřít 121 bodů nejvýš za 9 šipek (3 kola) a skončit na double, třeba T20, T11, D14. Zapisujete, na kolik šipek se to povedlo, nebo že ne. Cíl: co nejvíc zavřených pokusů a co nejméně šipek.',
+    t:'Čisté měření: 30 šipek na jeden double a počet zásahů. Velký vzorek ukáže skutečnou úspěšnost a časem i to, jestli se zlepšujete. Double si zvolte, nebo nechte vylosovat.',
+    k:'Klasická hra na doubly: začínáte na 27 bodech a na každý double od D1 po Bull házíte 3 šipky. Každý zásah přičte hodnotu doublu (D8 = 16), 0 zásahů ji odečte. Pod nulou konec. Cíl: dojít co nejdál a s co nejvyšším skóre.',
+    f:'Tlak jako v zápase: 3 šipky na aktuální double řady. Zásah = postup na další, 3× mimo = o stupeň zpět. Cíl: zavřít celou řadu bez kroku zpět (to se odměňuje pochvalou).'
+  };
+  return T[id]?`<div class="how"><b>O co jde:</b> ${T[id]}</div>`:'';
 }
 function pads(a='hit',b='miss',la='✓ Double',lb='✗ Mimo'){return `<div class="pads"><button class="b" data-act="${a}">${la}</button><button class="b out" data-act="${b}">${lb}</button></div>`;}
 function updTimers(){
@@ -752,6 +776,8 @@ function renderHist(){
 function render(){
   document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===tab));
   after.length=0;
+  const g=gateState();document.body.classList.toggle('gated',!!g);
+  if(g){$('#main').innerHTML=g==='loading'?'<div class="card muted">Načítám…</div>':'<div class="card muted">Přihlaste se, aby se tréninky ukládaly do vašeho účtu.</div>';renderAcct();return;}
   const m=$('#main');
   m.innerHTML=tab==='train'?(run?renderTrainActive():renderTrainIdle()):tab==='stats'?renderStats():renderHist();
   after.forEach(f=>f());
@@ -763,6 +789,7 @@ document.addEventListener('click',async e=>{
   if(t.dataset.tab){tab=t.dataset.tab;confirmDel=null;render();return;}
   const a=t.dataset.act;
   switch(a){
+    case 'reload':location.reload();return;
     case 'acct-open':acct.open=!acct.open;acct.msg='';renderAcct();return;
     case 'acct-close':acct.open=false;renderAcct();return;
     case 'acct-mode':acct.mode=t.dataset.v;acct.msg='';{const em=$('#aem');if(em)acct.email=em.value;}renderAcct();return;
