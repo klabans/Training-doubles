@@ -125,7 +125,7 @@ textarea{width:100%;min-height:90px;background:var(--card);color:var(--tx);borde
 @media (prefers-reduced-motion:reduce){.praise{transition:none}}
 input[type=email],input[type=password]{width:100%;font:inherit;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--tx);margin:2px 0 8px;min-height:44px}
 .gated .tabs{display:none}
-.how{border-left:3px solid var(--s1);padding:4px 12px;margin:0 0 10px;font-size:14px;color:var(--tx2)}
+.howw{margin:0 0 8px}.howbtn{background:none;border:0;padding:4px 0;font:inherit;font-size:13px;font-weight:600;color:var(--tx2);cursor:pointer;text-align:left}.how{border-left:3px solid var(--s1);padding:4px 12px;margin:0 0 10px;font-size:14px;color:var(--tx2)}
 .how b{color:var(--tx)}
 @media (min-width:768px){.how{font-size:17px;padding:6px 16px}}
 .subtitle{font-size:22px;font-weight:800;color:var(--s1);margin:-4px 0 8px}
@@ -535,7 +535,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 3. 11. 2026, 21:40';
+const BUILD='verze 3. 11. 2026, 21:50';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -637,7 +637,7 @@ document.addEventListener('submit',async e=>{
 let cfg=lsGet('darts_cfg',null)||{sel:PRESETS.base.sel.slice(),cn:5};
 cfg.lim=Object.assign({a:10,b:10,r:3,f:10},cfg.lim||{});cfg.tn=cfg.tn||30;cfg.bneg=!!cfg.bneg;
 let tab='train';
-let howOpen=false;
+let howOpen=false;const gHow={};
 let sumT=null,sumTitle='Uloženo ✔',histDetail=null;
 let run=null, draftPending=null, lastSummary=null, confirmDel=null, exportText=null;
 const after=[];
@@ -942,7 +942,8 @@ function howBox(id){
     k:'Klasická hra na doubly: začínáte na 27 bodech a na každý double od D1 po Bull házíte 3 šipky. Každý zásah přičte hodnotu doublu (D8 = 16), 0 zásahů ji odečte. '+(run.bneg?'Skóre smí klesnout i pod nulu a hra pokračuje, zásahy ho zase zvyšují. Končí se až po Bullu, takže jde o konečné skóre.':'Pod nulou konec. Cíl: dojít co nejdál a s co nejvyšším skóre.')+'',
     f:'Tlak jako v zápase: 3 šipky na aktuální double řady. Zásah = postup na další, 3× mimo = o stupeň zpět. Cíl: zavřít celou řadu bez kroku zpět (to se odměňuje pochvalou). Po každém kole klepnete, která šipka (1–3) trefila, nebo Mimo.'
   };
-  return T[id]?`<div class="how"><b>O co jde:</b> ${T[id]}</div>`:'';
+  if(!T[id])return '';const o=!!gHow[id];
+  return `<div class="howw"><button class="howbtn" data-act="ghow" data-id="${id}" aria-expanded="${o}">ℹ️ O co jde ${o?'▲':'▼'}</button>${o?`<div class="how">${T[id]}</div>`:''}</div>`;
 }
 function pads(a='hit',b='miss',la='✓ Double',lb='✗ Mimo'){return `<div class="pads"><button class="b" data-act="${a}">${la}</button><button class="b miss" data-act="${b}">${lb}</button></div>`;}
 function updTimers(){
@@ -1160,6 +1161,7 @@ document.addEventListener('click',async e=>{
     case 'theme':{const v=t.dataset.v;if(THEMES[v]){try{localStorage.setItem('darts_theme',v);}catch(e){}applyTheme(v);}break;}
     case 'repeat':repeatPhase();break;
     case 'howtoggle':howOpen=!howOpen;break;
+    case 'ghow':gHow[t.dataset.id]=!gHow[t.dataset.id];break;
     case 'preset':{const pre=PRESETS[t.dataset.v].sel,same=pre.length===cfg.sel.length&&pre.every(x=>cfg.sel.includes(x));cfg.sel=(t.dataset.v==='all'&&same)?[]:pre.slice();lsSet('darts_cfg',cfg);break;}
     case 'cn':cfg.cn=+t.dataset.v;lsSet('darts_cfg',cfg);break;
     case 'axhit':addFb('x',true);return;
