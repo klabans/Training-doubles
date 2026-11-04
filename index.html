@@ -661,7 +661,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 4. 11. 2026, 20:15';
+const BUILD='verze 4. 11. 2026, 20:45';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -769,7 +769,7 @@ let sumT=null,sumTitle='Uloženo ✔',histDetail=null;
 let run=null, draftPending=null, lastSummary=null, confirmDel=null, exportText=null;
 const after=[];
 
-function saveDraft(){ if(run) lsSet(LS_D,{darts:run.darts,phase:run.phase,phaseStart:run.phaseStart,elapsed:run.elapsed,fc:run.fc,startedAt:run.startedAt,plan:run.plan,cn:run.cn,tt:run.tt,tauto:run.tauto,timed:run.timed,fb:run.fb,groups:run.groups,lim:run.lim,tn:run.tn,bneg:run.bneg,rep:run.rep,extra:run.extra,cn0:run.cn0,zn:run.zn,zn0:run.zn0,zr:run.zr,zcur:run.zcur,pcur:run.pcur,p14day:run.p14day,p14id:run.p14id,act:run.act}); }
+function saveDraft(){ if(run) lsSet(LS_D,{darts:run.darts,phase:run.phase,phaseStart:run.phaseStart,elapsed:run.elapsed,fc:run.fc,startedAt:run.startedAt,plan:run.plan,cn:run.cn,tt:run.tt,tauto:run.tauto,timed:run.timed,fb:run.fb,groups:run.groups,lim:run.lim,tn:run.tn,bneg:run.bneg,rep:run.rep,extra:run.extra,cn0:run.cn0,zn:run.zn,zn0:run.zn0,zr:run.zr,zcur:run.zcur,pcur:run.pcur,p14day:run.p14day,p14id:run.p14id,act:run.act,paused:!!run.paused,pausedAt:run.pausedAt||0}); }
 function startRun(from){
   lastSummary=null;
   run=Object.assign({darts:[],phase:0,phaseStart:0,elapsed:0,fc:'b',startedAt:Date.now(),tt:20,tauto:false,timed:true,fb:'',groups:[],lim:{},tn:30,bneg:false,rep:{},extra:0,zr:cfg.zr},from||{});
@@ -1020,14 +1020,24 @@ function renderTrainIdle(){
   let h='';
   if(lastSummary) h+=summaryCard(lastSummary,sumTitle,'sumclose');
   if(draftPending){
-    h+=`<div class="card"><b>Rozpracovaný trénink</b><p class="muted" style="margin:4px 0 10px">${draftPending.darts.length} šipek, ${fT(draftPending.elapsed)} odtrénováno.</p><div class="row"><button class="b" data-act="resume">Pokračovat</button><button class="b ghost" data-act="discard-draft">Zahodit</button></div></div>`;
+    const dp=draftPending,dph=(dp.plan||[])[dp.phase||0],dago=Date.now()-(dp.pausedAt||dp.startedAt||Date.now());
+    h+=`<div class="card verdict"><b>Rozpracovaný trénink${dp.p14day?` · 14denní plán, den ${dp.p14day}`:''}</b><p class="muted" style="margin:4px 0 10px">${dph?`Hra ${esc(dph.name)} (${(dp.phase||0)+1}/${dp.plan.length}) · `:''}${dp.darts.length} šipek · ${fClock(dp.act||0)} odtrénováno${dp.pausedAt&&dago>=60000?` · pozastaveno před ${fHM(dago)}`:''}. Pokračuješ přesně tam, kde jsi skončil.</p><div class="row"><button class="b" data-act="resume">Pokračovat</button><button class="b ghost" data-act="discard-draft">Zahodit</button></div></div>`;
   }
   h+=cfgCard()+`<div class="row" style="margin:12px 0"><button class="b start" data-act="start" style="width:100%;min-height:64px">▶ Začít trénink</button></div>${(!lastSummary&&Store.sessions.length)?'<div class="row" style="margin:0 0 12px"><button class="b ghost sm" data-act="sumshow">Souhrn posledního tréninku</button></div>':''}`;
   return `<div class="igrid"><div>${h}</div><div><button class="b ghost" data-act="howtoggle" style="width:100%" aria-expanded="${howOpen}">ℹ️ Jak na to ${howOpen?'▲':'▼'}</button>${howOpen?planCard():''}</div></div>`;
 }
+function pauseCard(){
+  const ph=run.plan[run.phase],ago=run.pausedAt?Date.now()-run.pausedAt:0;
+  return `<div class="card verdict" style="text-align:center"><div class="target" style="font-size:44px">⏸ Pauza</div>
+  <p style="margin:6px 0">${run.p14day?`14denní plán · den <b>${run.p14day}</b> z 14 · `:''}hra <b>${esc(ph.name)}</b> (${run.phase+1}/${run.plan.length})<br>šipek <b>${run.darts.length}</b> · odtrénováno <b>${fClock(run.act)}</b>${ago>=60000?` · pozastaveno před ${fHM(ago)}`:''}</p>
+  <p class="muted" style="margin:4px 0 12px">Čas stojí. Rozehraný trénink zůstane uložený i po zavření aplikace – po návratu pokračuješ přesně tam, kde jsi skončil.</p>
+  <div class="row" style="justify-content:center"><button class="b" data-act="unhold" style="min-width:200px">▶ Pokračovat</button></div>
+  <div class="row" style="justify-content:center;margin-top:10px"><button class="b ghost sm" data-act="finish">Ukončit a uložit</button></div></div>`;
+}
 function renderTrainActive(){
   const ph=run.plan[run.phase],id=ph.id,R=replay(run.darts),LASTI=run.plan.length-1;
-  const T=`<div class="muted" style="margin:0 0 6px">⏱ Čas tréninku: <b id="tAct">${fClock(run.act)}</b>${run.p14day?` · 14denní plán, den <b>${run.p14day}</b> z 14`:''}</div>`;
+  if(run.paused) return pauseCard();
+  const T=`<div class="row spread" style="margin:0 0 6px"><span class="muted">⏱ Čas tréninku: <b id="tAct">${fClock(run.act)}</b>${run.p14day?` · 14denní plán, den <b>${run.p14day}</b> z 14`:''}</span><button class="b ghost sm" data-act="hold">⏸ Pauza</button></div>`;
   const C=`<div class="chips plan">${run.plan.map((p,i)=>`<button class="chip ${i===run.phase?'cur':''}" data-act="goto" data-i="${i}">${p.name}</button>`).join('')}</div>`;
   let h='';
   if(id==='w'){
@@ -1194,7 +1204,7 @@ function updTimers(){
 }
 // čistý čas tréninku: běží, dokud je aplikace na obrazovce; po 5 min bez zadání se zastaví (pauza, odchod od terče)
 const IDLE_MS=5*60000;let actLast=Date.now(),actTick=0;
-setInterval(()=>{const now=Date.now(),dt=now-actLast;actLast=now;if(!run||document.hidden||dt>5000)return;if(now-(run.lastIn||0)<IDLE_MS)run.act=(run.act||0)+dt;const e=$('#tAct');if(e)e.textContent=fClock(run.act);if(++actTick%15===0)saveDraft();},1000);
+setInterval(()=>{const now=Date.now(),dt=now-actLast;actLast=now;if(!run||run.paused||document.hidden||dt>5000)return;if(now-(run.lastIn||0)<IDLE_MS)run.act=(run.act||0)+dt;const e=$('#tAct');if(e)e.textContent=fClock(run.act);if(++actTick%15===0)saveDraft();},1000);
 setInterval(()=>{if(!run||run.timed===false) return;const now=performance.now();if(run.running&&run.plan[run.phase].min>0) run.elapsed+=now-run.last;run.last=now;updTimers();},250);
 
 async function finish(){
@@ -1472,7 +1482,9 @@ document.addEventListener('click',async e=>{
     case 'tnext':run.tfresh=true;run.tsel=null;run.tcol=null;if(run.tauto)run.tt=randDbl(run.tt);saveDraft();break;
     case 'trand':run.tt=randDbl(run.tt);saveDraft();break;
     case 'tauto':run.tauto=!run.tauto;if(run.tauto){const c=replay(run.darts).t.cur;if(!(c&&c.n>0&&c.n<c.N))run.tt=randDbl(run.tt);}saveDraft();break;
-    case 'resume':startRun(draftPending);run.running=false;break;
+    case 'resume':startRun(draftPending);run.running=false;run.paused=false;run.lastIn=Date.now();saveDraft();break;
+    case 'hold':run.paused=true;run.pausedAt=Date.now();saveDraft();break;
+    case 'unhold':run.paused=false;run.pausedAt=0;run.lastIn=Date.now();saveDraft();break;
     case 'discard-draft':lsDel(LS_D);draftPending=null;break;
     case 'pause':run.running=!run.running;run.last=performance.now();break;
     case 'goto':run.phase=+t.dataset.i;run.phaseStart=run.elapsed;saveDraft();break;
