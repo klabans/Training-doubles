@@ -150,8 +150,9 @@ input[type=email],input[type=password]{width:100%;font:inherit;padding:10px 12px
 .kp .b{min-height:84px;font-size:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
 .kp .b small{font-size:13px;font-weight:600;opacity:.85}
 @media (min-width:768px){.subtitle{font-size:34px}.kp{gap:16px}.kp .b{min-height:140px;font-size:46px}.kp .b small{font-size:20px}}
-.presets{flex-wrap:nowrap;gap:8px}
-.presets .chip{flex:1 1 0;min-width:0;text-align:center;white-space:nowrap;display:flex;flex-direction:column;align-items:center;line-height:1.2;padding:6px 4px}
+.presets{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media (min-width:600px){.presets{grid-template-columns:repeat(4,1fr)}}
+.presets .chip{min-width:0;text-align:center;white-space:nowrap;display:flex;flex-direction:column;align-items:center;line-height:1.2;padding:6px 4px}
 .presets .chip small{font-size:12px;font-weight:600;color:var(--tx3)}
 @media (min-width:900px){.igrid{grid-template-columns:1.8fr 1fr}.presets .chip{font-size:18px}.presets .chip small{font-size:14px}}
 
@@ -631,7 +632,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 4. 11. 2026, 13:25';
+const BUILD='verze 4. 11. 2026, 14:10';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -739,7 +740,7 @@ let sumT=null,sumTitle='Uloženo ✔',histDetail=null;
 let run=null, draftPending=null, lastSummary=null, confirmDel=null, exportText=null;
 const after=[];
 
-function saveDraft(){ if(run) lsSet(LS_D,{darts:run.darts,phase:run.phase,phaseStart:run.phaseStart,elapsed:run.elapsed,fc:run.fc,startedAt:run.startedAt,plan:run.plan,cn:run.cn,tt:run.tt,tauto:run.tauto,timed:run.timed,fb:run.fb,groups:run.groups,lim:run.lim,tn:run.tn,bneg:run.bneg,rep:run.rep,extra:run.extra,cn0:run.cn0,zn:run.zn,zn0:run.zn0,zr:run.zr,zcur:run.zcur,pcur:run.pcur}); }
+function saveDraft(){ if(run) lsSet(LS_D,{darts:run.darts,phase:run.phase,phaseStart:run.phaseStart,elapsed:run.elapsed,fc:run.fc,startedAt:run.startedAt,plan:run.plan,cn:run.cn,tt:run.tt,tauto:run.tauto,timed:run.timed,fb:run.fb,groups:run.groups,lim:run.lim,tn:run.tn,bneg:run.bneg,rep:run.rep,extra:run.extra,cn0:run.cn0,zn:run.zn,zn0:run.zn0,zr:run.zr,zcur:run.zcur,pcur:run.pcur,p14day:run.p14day}); }
 function startRun(from){
   lastSummary=null;
   run=Object.assign({darts:[],phase:0,phaseStart:0,elapsed:0,fc:'b',startedAt:Date.now(),tt:20,tauto:false,timed:true,fb:'',groups:[],lim:{},tn:30,bneg:false,rep:{},extra:0,zr:cfg.zr},from||{});
@@ -906,13 +907,55 @@ function planCard(){
   <b>Test šipek:</b> 10, 20, 30 nebo 40 šipek (zvolíte v nastavení) na jeden double, počet zásahů – větší vzorek pro poctivé srovnání. Double si zvolíte sami, tlačítkem „Náhodný double“ ho nechte vylosovat, nebo zapněte losování po každém testu.<br>
   <b>Bob's 27:</b> začínáte na 27 bodech, na každý double D1 až Bull házíte 3 šipky – zásah přičte hodnotu doublu, 0 zásahů ji odečte. Končí, když skóre klesne pod nulu; v nastavení lze zvolit, že se hraje dál i do mínusu.<br>
   <b>Tlakový závěr:</b> hraje se jedna z řad (16·8·4·2·1 nebo 20·10·5, přepínač je v bloku, výchozí je 16·8·4·2·1) a začíná se od jejího prvního doublu. V každém kole máte 3 šipky: zásah = postup na další double v řadě a zbylé šipky kola házíte už na něj; kolo bez jediného zásahu = o jeden stupeň zpět (na úplném začátku zůstanete). Počítá se nejvyšší dosažená úroveň a počet dokončených řad.<br>
+  <b>14denní plán:</b> předvolba, která za tebe každý den nastaví hry a limity (zhruba 30–35 minut). Dny 1, 7 a 14 jsou měření na stejných doublech, mezi nimi je objem na první šipku a zavírání z čísla, vždy se závěrem pod tlakem. Po uložení tréninku se plán posune na další den; dnem jde i přeskakovat. Podrobnější vysvětlení je přímo u plánu.<br>
   <b>Oblíbený double:</b> volba pro hry se zavíráním (121 a Zavírání z náhodného čísla). U zobrazeného čísla aplikace ukazuje doporučenou cestu na zavření – podle standardní tabulky. Když si zvolíte svůj nejlepší double, cesty se upraví tak, aby končily na něm (pokud se na něj dá dojít ve stejném počtu šipek jako v tabulce). V seznamu jsou doubly seřazené podle vaší úspěšnosti, jakmile máte aspoň 15 šipek na daný double. Nastavit ho jde na úvodní obrazovce i přímo pod cestou ve hře.</p></div>`;
+}
+
+/* ---------- 14denní plán ---------- */
+const P14=[
+ {t:'Měření',sel:['w','t','k'],tn:30,tt:20,note:'Test 30 šipek na D20, pak „Další test“ na D16, nakonec Bob\'s 27. Nic nezlepšovat, jen změřit výchozí stav.'},
+ {t:'Objem na řadách',sel:['w','a','b','p','f'],lim:{a:10,b:10,p:30},note:'Obě řady po 10 kolech a 30 šipek „Jedna šipka na double“. Závěr pod tlakem.'},
+ {t:'První šipka',sel:['w','p','r','f'],lim:{p:50,r:3},note:'50 šipek „Jedna šipka na double“ a 3 pětice. Od dneška zapisuj u každého minutí, kam šipka šla.'},
+ {t:'Nejslabší double',sel:['w','b','t','f'],lim:{b:15},tn:30,weak:true,note:'Řada 16·8·4·2·1 na 15 kol a Test 30 šipek na tvůj zatím nejslabší double (aplikace ho předvyplní).'},
+ {t:'Zavírání z čísla',sel:['w','z','p','f'],zr:'41-100',cn:10,lim:{p:30},note:'10 pokusů Zavírání 41–100 (sleduj doporučené cesty) a 30 šipek první šipky.'},
+ {t:'Smíšený den',sel:['w','a','r','k'],lim:{a:10,r:3},note:'Řada 20·10·5, 3 pětice, Bob\'s 27. Po tréninku se podívej na statistiku „Kam míjím“.'},
+ {t:'Lehký den – měření',sel:['w','t'],tn:30,tt:20,note:'Jen Test 30 šipek na D20 a pak „Další test“ na D16. Srovnej s dnem 1. Nastav si oblíbený double podle statistik.'},
+ {t:'121',sel:['w','c','p','f'],cn:10,lim:{p:30},note:'10 pokusů postupného 121 a 30 šipek první šipky.'},
+ {t:'Těžší čísla',sel:['w','z','b','f'],zr:'61-130',cn:10,lim:{b:10},note:'10 pokusů Zavírání 61–130 (cesty podle oblíbeného doublu) a řada 16·8·4·2·1 na 10 kol.'},
+ {t:'Objem na první šipku',sel:['w','p','r','k'],lim:{p:50,r:3},note:'50 šipek první šipky a 3 pětice. Změny už by měly být vidět.'},
+ {t:'Den zavírání',sel:['w','c','z','f'],cn:10,zr:'41-100',lim:{f:15},note:'10 pokusů 121, 10 pokusů Zavírání 41–100 a delší tlakový závěr (zkus obě řady).'},
+ {t:'Nejslabší double podruhé',sel:['w','a','t','f'],lim:{a:15},tn:30,weak:true,note:'Řada 20·10·5 na 15 kol a Test 30 šipek na nejslabší double. Srovnej s dnem 4.'},
+ {t:'Jako zápas',sel:['w','a','b','r','p','z','c','t','k','f'],lim:{a:5,b:5,r:2,p:20,f:5},cn:5,zr:'41-100',tn:20,tt:16,note:'Všechno krátce za sebou: limity 5 kol, 2 pětice, 121 i Zavírání po 5 pokusech, test jen 20 šipek.'},
+ {t:'Závěrečné měření',sel:['w','t','k'],tn:30,tt:20,note:'Test 30 šipek na D20, pak D16 a pak na nejslabší double („Další test“, double přepni ručně). Nakonec Bob\'s 27. Srovnej s dnem 1 ve Statistikách.'}
+];
+function weakDouble(){
+  const by={};try{allSessions().forEach(x=>{for(const t in x.sum.by){const o=by[t]||(by[t]={n:0,h:0});o.n+=x.sum.by[t].n;o.h+=x.sum.by[t].h;}});}catch(e){}
+  let best=null;for(const t in by){const o=by[t];if(o.n>=30&&(!best||o.h/o.n<best.p))best={t:+t,p:o.h/o.n};}
+  return best?best.t:16;
+}
+function p14apply(){
+  const d=P14[cfg.p14.day-1];if(!d)return;
+  cfg.sel=d.sel.slice();cfg.lim=Object.assign({a:10,b:10,r:3,f:10,p:30},d.lim||{});
+  if(d.cn)cfg.cn=d.cn;if(d.zr)cfg.zr=d.zr;if(d.tn)cfg.tn=d.tn;
+  cfg.p14.tt=d.weak?weakDouble():(d.tt||20);
+  lsSet('darts_cfg',cfg);
+}
+function p14Card(){
+  const P=cfg.p14,d=P14[P.day-1],done=P.done||[];
+  return `<div class="card verdict"><div class="row spread"><b>14denní plán · den ${P.day} z 14</b><button class="b ghost sm" data-act="p14off">Ukončit plán</button></div>
+  <div class="chips" style="margin:8px 0">${P14.map((x,i)=>`<button class="chip ${i+1===P.day?'cur':done.includes(i+1)?'done':''}" data-act="p14day" data-v="${i+1}">${i+1}</button>`).join('')}</div>
+  <p style="margin:4px 0"><b>${d.t}</b>${done.includes(P.day)?' <span class="muted">(odtrénováno)</span>':''}</p><p class="muted" style="margin:4px 0">${d.note}${d.weak?` Dnes: <b>${bl(P.tt||16)}</b>.`:''}</p>
+  <p class="muted" style="margin:6px 0 0">Hry a limity pro dnešek jsou nastavené níže. Po uložení tréninku plán přejde na další den. 30–35 minut, jeden den v týdnu volno.</p>
+  <button class="howbtn" data-act="p14how" aria-expanded="${!!P.how}">ℹ️ Proč zrovna takhle ${P.how?'▲':'▼'}</button>
+  ${P.how?`<div class="how">Plán má tři části. <b>Dny 1–2 a 7, 14</b> jsou měření: Test šipek na stejných doublech, abys poznal, jestli se posouváš. <b>Dny 3–7</b> jsou objem – stovky šipek na double, hlavně na první šipku, a sběr dat o tom, kam míjíš (podle toho poznáš, jestli upravit postoj, nebo vypuštění). <b>Dny 8–13</b> přidávají zavírání z čísla a tlak: v legu nerozhoduje double sám o sobě, ale jestli se na něj dostaneš a trefíš ho první šipkou. Každý den končí hrou pod tlakem. Nejslabší double se vybírá automaticky z tvých statistik (minimálně 30 šipek). Za 14 dní je reálné zlepšení o 5–10 procentních bodů na hlavních doublech – statistika „Posl. 3 vs. předchozí 3“ ukáže, jestli je to víc než náhoda. Hry si můžeš pro daný den dál upravit v seznamu níže.</div>`:''}
+  </div>`;
 }
 function cfgCard(){
   const same=k=>PRESETS[k].sel.length===cfg.sel.length&&PRESETS[k].sel.every(x=>cfg.sel.includes(x));
   return `<div class="card"><b>Složení tréninku</b>
-  <div class="chips presets">${Object.keys(PRESETS).map(k=>`<button class="chip ${same(k)?'cur':''}" data-act="preset" data-v="${k}">${PRESETS[k].label}<small>${PRESETS[k].sel.length} her</small></button>`).join('')}</div>
-  ${PHASEDEF.map(p=>`<div class="blk"><label class="blkl"><input type="checkbox" data-cfg="${p.id}" ${cfg.sel.includes(p.id)?'checked':''}><span>${p.id==='t'?'Test '+(cfg.tn||30)+' šipek':p.name}</span></label>${p.id==='a'?`<span class="muted">po minutí D5:</span><select data-fb><option value="" ${!cfg.fb?'selected':''}>znovu D5</option><option value="12" ${cfg.fb==='12'?'selected':''}>S1 → D2</option><option value="31" ${cfg.fb==='31'?'selected':''}>S3 → D1</option><option value="alt" ${cfg.fb==='alt'?'selected':''}>střídat</option></select>`:''}${LIMOPT[p.id]?`<span class="muted">limit:</span><select data-lim="${p.id}">${LIMOPT[p.id].map(n=>`<option value="${n}" ${cfg.lim[p.id]===n?'selected':''}>${n?n+(p.id==='r'?(n<5?' pětice':' pětic'):(n<5?' kola':' kol')):'bez limitu'}</option>`).join('')}</select>`:''}${p.id==='c'?`<span class="muted">pokusů:</span><button class="chip ${cfg.cn===10?'cur':''}" data-act="cn" data-v="10">10</button><button class="chip ${cfg.cn===15?'cur':''}" data-act="cn" data-v="15">15</button><button class="chip ${cfg.cn===20?'cur':''}" data-act="cn" data-v="20">20</button>`:''}${p.id==='z'?`<span class="muted">čísla:</span><select data-zr>${Object.keys(ZRANGES).map(k=>`<option value="${k}" ${cfg.zr===k?'selected':''}>${ZRANGES[k]}</option>`).join('')}</select><span class="muted">pokusů:</span><span class="muted">${cfg.cn}</span>`:''}${p.id==='k'?`<span class="muted">pod nulou:</span><select data-bneg><option value="" ${!cfg.bneg?'selected':''}>konec hry</option><option value="1" ${cfg.bneg?'selected':''}>do mínusu</option></select>`:''}${p.id==='t'?`<span class="muted">šipek:</span><select data-tn>${[10,20,30,40].map(n=>`<option value="${n}" ${(cfg.tn||30)===n?'selected':''}>${n}</option>`).join('')}</select>`:''}</div>`).join('')}
+  <div class="chips presets">${Object.keys(PRESETS).map(k=>`<button class="chip ${!cfg.p14&&same(k)?'cur':''}" data-act="preset" data-v="${k}">${PRESETS[k].label}<small>${PRESETS[k].sel.length} her</small></button>`).join('')}<button class="chip ${cfg.p14?'cur':''}" data-act="p14on">14denní plán<small>den po dni</small></button></div>
+  ${cfg.p14?p14Card():''}
+  ${PHASEDEF.map(p=>`<div class="blk"><label class="blkl"><input type="checkbox" data-cfg="${p.id}" ${cfg.sel.includes(p.id)?'checked':''}><span>${p.id==='t'?'Test '+(cfg.tn||30)+' šipek':p.name}</span></label>${p.id==='a'?`<span class="muted">po minutí D5:</span><select data-fb><option value="" ${!cfg.fb?'selected':''}>znovu D5</option><option value="12" ${cfg.fb==='12'?'selected':''}>S1 → D2</option><option value="31" ${cfg.fb==='31'?'selected':''}>S3 → D1</option><option value="alt" ${cfg.fb==='alt'?'selected':''}>střídat</option></select>`:''}${LIMOPT[p.id]?`<span class="muted">limit:</span><select data-lim="${p.id}">${LIMOPT[p.id].map(n=>`<option value="${n}" ${cfg.lim[p.id]===n?'selected':''}>${n?n+(p.id==='r'?(n<5?' pětice':' pětic'):p.id==='p'?' šipek':(n<5?' kola':' kol')):'bez limitu'}</option>`).join('')}</select>`:''}${p.id==='c'?`<span class="muted">pokusů:</span><button class="chip ${cfg.cn===10?'cur':''}" data-act="cn" data-v="10">10</button><button class="chip ${cfg.cn===15?'cur':''}" data-act="cn" data-v="15">15</button><button class="chip ${cfg.cn===20?'cur':''}" data-act="cn" data-v="20">20</button>`:''}${p.id==='z'?`<span class="muted">čísla:</span><select data-zr>${Object.keys(ZRANGES).map(k=>`<option value="${k}" ${cfg.zr===k?'selected':''}>${ZRANGES[k]}</option>`).join('')}</select><span class="muted">pokusů:</span><span class="muted">${cfg.cn}</span>`:''}${p.id==='k'?`<span class="muted">pod nulou:</span><select data-bneg><option value="" ${!cfg.bneg?'selected':''}>konec hry</option><option value="1" ${cfg.bneg?'selected':''}>do mínusu</option></select>`:''}${p.id==='t'?`<span class="muted">šipek:</span><select data-tn>${[10,20,30,40].map(n=>`<option value="${n}" ${(cfg.tn||30)===n?'selected':''}>${n}</option>`).join('')}</select>`:''}</div>`).join('')}
   <div class="blk"><label class="blkl"><span>Oblíbený double (cesty zavírání):</span></label>${favSel()}</div>
   <p class="muted" style="margin:8px 0 0">Vybráno her: <b>${cfg.sel.length}</b> z ${PHASEDEF.length}</p></div>`;
 }
@@ -1101,7 +1144,8 @@ async function finish(){
   if(!run.darts.length){run=null;lsDel(LS_D);render();return;}
   const s={ts:run.startedAt,durMs:run.timed===false?0:Math.round(run.elapsed),darts:run.darts.slice()};
   try{await Store.save(s);}catch(e){flash('Uložení se nepodařilo: '+(e&&e.message||e));return;}
-  lastSummary=summarize(s.darts);run=null;lsDel(LS_D);sumTitle='Uloženo ✔';clearTimeout(sumT);sumT=setTimeout(()=>{lastSummary=null;if(!run&&tab==='train')render();},15000);render();
+  const pd=run.p14day;if(pd&&cfg.p14){cfg.p14.done=[...new Set([...(cfg.p14.done||[]),pd])];if(pd<14&&cfg.p14.day===pd){cfg.p14.day=pd+1;p14apply();}else lsSet('darts_cfg',cfg);}
+  lastSummary=summarize(s.darts);run=null;lsDel(LS_D);sumTitle=pd?'Uloženo ✔ · den '+pd+' plánu hotový':'Uloženo ✔';clearTimeout(sumT);sumT=setTimeout(()=>{lastSummary=null;if(!run&&tab==='train')render();},15000);render();
   if(Store.fallback) flash('Uložení na server se nepovedlo, trénink je uložen jen v tomto prohlížeči.'+(Store.cloud?' Až budete online, nahrajte ho v nabídce účtu.':''));
 }
 function flash(t){const n=$('#note');n.innerHTML=`<div class="note">${esc(t)}</div>`;setTimeout(()=>{if(n.firstChild&&n.textContent===t)n.innerHTML='';},6000);}
@@ -1318,7 +1362,7 @@ document.addEventListener('click',async e=>{
       else{try{await Cloud.ad.reset(acct.email);acct.msg='Pokud pro tento e-mail existuje účet, poslali jsme na něj odkaz pro nové heslo.';}catch(err){acct.msg=authMsg(err);}}
       renderAcct();return;}
     case 'acct-upload':try{await Store.uploadLocal();flash('Tréninky z tohoto zařízení jsou v účtu.');}catch(err){flash('Nahrání se nepovedlo, zkuste to později.');}renderAcct();break;
-    case 'start':if(!cfg.sel.length){flash('Vyberte alespoň jednu fázi.');return;}startRun({plan:buildPlan(cfg.sel,cfg.cn),cn:cfg.cn,timed:false,fb:cfg.fb||'',lim:Object.assign({},cfg.lim),tn:cfg.tn||30,bneg:!!cfg.bneg,zr:cfg.zr});break;
+    case 'start':if(!cfg.sel.length){flash('Vyberte alespoň jednu fázi.');return;}startRun({plan:buildPlan(cfg.sel,cfg.cn),cn:cfg.cn,timed:false,fb:cfg.fb||'',lim:Object.assign({},cfg.lim),tn:cfg.tn||30,bneg:!!cfg.bneg,zr:cfg.zr,tt:cfg.p14?cfg.p14.tt:20,p14day:cfg.p14?cfg.p14.day:0});break;
     case 'sumclose':lastSummary=null;break;
     case 'sumshow':{const L=allSessions();if(L.length){const x=L[L.length-1];lastSummary=x.sum;sumTitle='Poslední trénink – '+fDL(x.s.ts);clearTimeout(sumT);}break;}
     case 'hdetail':histDetail=t.dataset.id;break;
@@ -1327,8 +1371,12 @@ document.addEventListener('click',async e=>{
     case 'repeat':repeatPhase();break;
     case 'howtoggle':howOpen=!howOpen;break;
     case 'ghow':gHow[t.dataset.id]=!gHow[t.dataset.id];break;
-    case 'preset':{const pre=PRESETS[t.dataset.v].sel,same=pre.length===cfg.sel.length&&pre.every(x=>cfg.sel.includes(x));cfg.sel=(t.dataset.v==='all'&&same)?[]:pre.slice();lsSet('darts_cfg',cfg);break;}
+    case 'preset':{cfg.p14=null;const pre=PRESETS[t.dataset.v].sel,same=pre.length===cfg.sel.length&&pre.every(x=>cfg.sel.includes(x));cfg.sel=(t.dataset.v==='all'&&same)?[]:pre.slice();lsSet('darts_cfg',cfg);break;}
     case 'cn':cfg.cn=+t.dataset.v;lsSet('darts_cfg',cfg);break;
+    case 'p14on':cfg.p14=cfg.p14||{day:1,done:[]};p14apply();break;
+    case 'p14off':cfg.p14=null;lsSet('darts_cfg',cfg);break;
+    case 'p14day':cfg.p14.day=+t.dataset.v;p14apply();break;
+    case 'p14how':cfg.p14.how=!cfg.p14.how;lsSet('darts_cfg',cfg);break;
     case 'axhit':addFb('x',true);return;
     case 'axmiss':addFb('x',false);return;
     case 'ayhit':addFb('y',true);return;
