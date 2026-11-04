@@ -32,11 +32,13 @@ Stačí otevřít `index.html` v prohlížeči (nebo jakýkoli statický server)
 
 ## Datový model (důležité)
 
-Trénink = `{id:'s'+ts, ts, durMs, darts:[...]}`. Každý záznam v `darts` je řetězec `fáze:double:zásah[:extra…]`:
+Trénink = `{id:'s'+ts, ts, durMs, darts:[...], p14?:{id,day}}`. Ukládá se přes `recOf()` (localStorage, `claude.use('db')` i Firebase). `durMs` = čistý čas tréninku (`run.act`, staví se po 5 min bez zadání); `p14` = trénink patří do 14denního plánu `id` (ts jeho začátku), den `day`. Postup plánu se odvozuje i z uložených tréninků (`p14Done`, `p14Restore`), `cfg.p14` je jen cache.
+
+Každý záznam v `darts` je řetězec `fáze:double:zásah[:extra…]`:
 
 | kód | hra | formát |
 |---|---|---|
-| `a`, `b` | řady 20·10·5 / 16·8·4·2·1 | `a:20:1`, při minutí volitelně `:l/r/o/i` (směr) |
+| `a`, `b` | řady 20·10·5 / 16·8·4·2·1 | `a:20:1`; minutá šipka volitelně s polohou `:@x,y` (souřadnice SVG terče, poloměr drátu doublu 100, y dolů; zapisuje se ťuknutím do výřezu `missPad`). Starší záznamy mají `:l/r/o/i` – `missOff()` je přepočte přibližně. Totéž platí pro `ay`, `fa/fb`, `r`, `p`, `t` |
 | `ax`, `ay` | záchrana po D5 (single / double) | `ax:1:1`, `ay:2:0` |
 | `fa`, `fb` | tlakový závěr (řada a / b) | `fb:16:1` |
 | `rd`, `r` | náhodná pětice (losování / šipka) | `rd:20-16-3-8-12:0`, `r:16:1` |
@@ -61,7 +63,7 @@ Trénink = `{id:'s'+ts, ts, durMs, darts:[...]}`. Každý záznam v `darts` je �
 
 ## Známé zvláštnosti
 
-- Časovač fází je vypnutý (`run.timed=false` v `startRun`); `updTimers`, `pause`, minuty v `PHASEDEF` jsou pozůstatek.
+- Odpočet fází je vypnutý (`run.timed=false` v `startRun`); `updTimers`, `pause`, minuty v `PHASEDEF` jsou pozůstatek. Skutečný čas měří samostatný interval do `run.act`.
 - Akce `hit/miss`, `rhit/rmiss`, `thit/tmiss`, `ayhit/aymiss` UI nepoužívá (zadává se přes `vhit/vmiss` a `dhit/dmiss`).
 - Zavírání z čísla sdílí počet pokusů `cfg.cn` se hrou 121.
 - Firebase `apiKey` je v kódu záměrně (veřejný klientský klíč); ochrana dat závisí na pravidlech Firestore (`users/{uid}/sessions` jen pro vlastníka).
