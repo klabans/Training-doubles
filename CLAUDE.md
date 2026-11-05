@@ -5,6 +5,7 @@ Klaboš Doubles Trénink – webová aplikace pro trénink doublů v šipkách. 
 ## Soubory
 
 - `index.html` – **jediný aktivní soubor aplikace** (HTML + CSS + JS v jednom, bez build kroku, bez závislostí v repu).
+- `klabos.webp` – logo „Klaboš“ v záhlaví (průhledné pozadí, vložené jako `<img class="logo">` v `<h1>`). Jediný další soubor v repu.
 - Repozitář: https://github.com/klabans/Training-doubles (veřejný, větev `main`). Kopie na Google Disku (`G:\Můj disk\darts`) je jen záloha, needitovat ji.
 
 ## Nasazení

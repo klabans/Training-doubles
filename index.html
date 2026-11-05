@@ -86,7 +86,7 @@ textarea{width:100%;min-height:90px;background:var(--card);color:var(--tx);borde
 .mscat{display:block;width:100%;max-width:300px;aspect-ratio:1;margin:6px auto}
 .bars.wide .r{grid-template-columns:120px 1fr 90px}
 @media (max-width:767px){
-  body.running .banner h1{font-size:22px!important;line-height:1.05!important;max-width:none!important;margin:2px 0 0!important;display:block!important}
+  body.running .banner h1{font-size:22px!important;line-height:1.05!important;max-width:none!important;margin:2px 0 0!important;display:flex!important}
   body.running .banner h1::before{display:none!important}
   body.running .kicker,body.running .bboard{display:none!important}
   body.running .subtitle{font-size:17px!important;margin:2px 0 4px!important}
@@ -181,6 +181,8 @@ h2{font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:21px}
 .bboard{position:absolute;right:-150px;top:-130px;width:390px;height:390px;opacity:.22}
 .bboard svg{display:block;width:100%;height:100%}
 .kicker{font:700 13px/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--s1)}
+.logo{height:1.15em;width:auto;display:block;flex:none}
+.banner h1{display:flex;align-items:center;gap:.22em;line-height:1}
 .banner h1{margin:6px 0 0;font:800 38px/.95 'Barlow Condensed','Arial Narrow',sans-serif;text-transform:uppercase;letter-spacing:.01em;max-width:80%}
 .subtitle{color:var(--s1);margin:10px 0 0;font:800 34px/1 'Barlow Condensed','Arial Narrow',sans-serif;text-transform:uppercase}
 .tabs{border-bottom:1px solid var(--line)}
@@ -354,7 +356,7 @@ applyTheme(getTheme());
 </script>
 </head>
 <body>
-<header class="banner"><div class="bboard" id="bboard" aria-hidden="true"></div><div class="binner"><div class="kicker">Darts · doubles</div><h1>Klaboš Doubles Trénink</h1><div id="sub" class="subtitle"></div></div></header>
+<header class="banner"><div class="bboard" id="bboard" aria-hidden="true"></div><div class="binner"><div class="kicker">Darts · doubles</div><h1><img class="logo" src="klabos.webp" alt="Klaboš"><span>Doubles</span></h1><div id="sub" class="subtitle"></div></div></header>
 <div class="app">
   <div id="acct" style="margin:0 0 8px"></div>
   <div class="tabs" role="tablist">
@@ -676,7 +678,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 5. 11. 2026, 19:00';
+const BUILD='verze 5. 11. 2026, 20:30';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
