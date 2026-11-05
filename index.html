@@ -676,7 +676,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 5. 11. 2026, 14:00';
+const BUILD='verze 5. 11. 2026, 15:00';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -789,7 +789,7 @@ function startRun(from){
   lastSummary=null;
   run=Object.assign({darts:[],phase:0,phaseStart:0,elapsed:0,fc:'b',startedAt:Date.now(),tt:20,tauto:false,timed:true,fb:'',groups:[],lim:{},tn:30,bneg:false,rep:{},extra:0,zr:cfg.zr},from||{});
   if(!run.plan||!run.plan.length) run.plan=buildPlan(cfg.sel,cfg.cn);
-  run.cd=run.cd||cfg.cd||9;if(run.omode===undefined)run.omode=cfg.omode||'';run.cn=run.cn||cfg.cn;run.cn0=run.cn0||run.cn;run.zn=run.zn||run.cn;run.zn0=run.zn0||run.zn;run.zr=run.zr||cfg.zr;if(!run.zcur)run.zcur=drawZ(run.zr);if(!run.pcur)run.pcur=drawP();run.timed=false; run.tfresh=false; run.phase=Math.min(run.phase,run.plan.length-1);
+  run.cd=run.cd||cfg.cd||9;if(run.omode===undefined)run.omode=cfg.omode||'';if(run.wo===undefined)run.wo=!!cfg.wo;run.cn=run.cn||cfg.cn;run.cn0=run.cn0||run.cn;run.zn=run.zn||run.cn;run.zn0=run.zn0||run.zn;run.zr=run.zr||cfg.zr;if(!run.zcur)run.zcur=drawZ(run.zr);if(!run.pcur)run.pcur=drawP();run.timed=false; run.tfresh=false; run.phase=Math.min(run.phase,run.plan.length-1);
   run.act=run.act||0;run.lastIn=Date.now();run.running=true; run.last=performance.now(); lastSummary=null; draftPending=null; saveDraft();
 }
 function curTarget(){
@@ -910,7 +910,7 @@ function tTarget(c){return c&&c.n>0&&c.n<c.N?c.t:run.tt;}
 function tcode(){const N=run.tn||30;return N===30?'t':'t'+N;}
 function addT(hit){const c=replay(run.darts).t.cur;if(c&&c.n>=c.N&&!run.tfresh)return;run.tfresh=false;commit(tcode()+':'+tTarget(c)+':'+(hit?1:0));}
 function ocode(){return run.omode==='3'?'ot':'o';}
-function addO(hit){const o=replay(run.darts).o.cur;if(o.done)return;commit(ocode()+':'+BOB[o.i]+':'+(hit?1:0));}
+function addO(hit,code){const o=replay(run.darts).o.cur;if(o.done)return;commit((code||ocode())+':'+BOB[o.i]+':'+(hit?1:0));}
 function kcode(){return run.bneg?'kn':'k';}
 function addBob(n){
   const c=replay(run.darts).k.cur; if(c.over||c.done) return;
@@ -1026,7 +1026,7 @@ function cfgCard(){
   return `<div class="card"><b>Složení tréninku</b>
   <div class="chips presets">${Object.keys(PRESETS).map(k=>`<button class="chip ${!cfg.p14&&same(k)?'cur':''}" data-act="preset" data-v="${k}">${PRESETS[k].label}<small>${PRESETS[k].sel.length} her</small></button>`).join('')}<button class="chip ${cfg.p14?'cur':''}" data-act="p14on">14denní plán<small>den po dni</small></button></div>
   ${cfg.p14?p14Card():''}
-  ${PHASEDEF.map(p=>`<div class="blk"><label class="blkl"><input type="checkbox" data-cfg="${p.id}" ${cfg.sel.includes(p.id)?'checked':''}><span>${p.id==='t'?'Test '+(cfg.tn||30)+' šipek':p.name}</span></label>${p.id==='a'?`<span class="muted">po minutí D5:</span><select data-fb><option value="" ${!cfg.fb?'selected':''}>znovu D5</option><option value="12" ${cfg.fb==='12'?'selected':''}>S1 → D2</option><option value="31" ${cfg.fb==='31'?'selected':''}>S3 → D1</option><option value="alt" ${cfg.fb==='alt'?'selected':''}>střídat</option></select>`:''}${LIMOPT[p.id]?`<span class="muted">limit:</span><select data-lim="${p.id}">${LIMOPT[p.id].map(n=>`<option value="${n}" ${cfg.lim[p.id]===n?'selected':''}>${n?n+(p.id==='r'?(n<5?' pětice':' pětic'):p.id==='p'?' šipek':(n<5?' kola':' kol')):'bez limitu'}</option>`).join('')}</select>`:''}${p.id==='c'?`<span class="muted">pokusů:</span><button class="chip ${cfg.cn===10?'cur':''}" data-act="cn" data-v="10">10</button><button class="chip ${cfg.cn===15?'cur':''}" data-act="cn" data-v="15">15</button><button class="chip ${cfg.cn===20?'cur':''}" data-act="cn" data-v="20">20</button><span class="muted">šipek:</span><button class="chip ${(cfg.cd||9)===9?'cur':''}" data-act="cd" data-v="9">9</button><button class="chip ${cfg.cd===12?'cur':''}" data-act="cd" data-v="12">12 (úleva)</button>`:''}${p.id==='o'?`<span class="muted">režim:</span><select data-omode><option value="" ${!cfg.omode?'selected':''}>volný (do zásahu)</option><option value="3" ${cfg.omode==='3'?'selected':''}>profi (3 šipky na pole)</option></select>`:''}${p.id==='z'?`<span class="muted">čísla:</span><select data-zr>${Object.keys(ZRANGES).map(k=>`<option value="${k}" ${cfg.zr===k?'selected':''}>${ZRANGES[k]}</option>`).join('')}</select><span class="muted">pokusů:</span><span class="muted">${cfg.cn}</span>`:''}${p.id==='k'?`<span class="muted">pod nulou:</span><select data-bneg><option value="" ${!cfg.bneg?'selected':''}>konec hry</option><option value="1" ${cfg.bneg?'selected':''}>do mínusu</option></select>`:''}${p.id==='t'?`<span class="muted">šipek:</span><select data-tn>${[10,20,30,40].map(n=>`<option value="${n}" ${(cfg.tn||30)===n?'selected':''}>${n}</option>`).join('')}</select>`:''}</div>`).join('')}
+  ${PHASEDEF.map(p=>`<div class="blk"><label class="blkl"><input type="checkbox" data-cfg="${p.id}" ${cfg.sel.includes(p.id)?'checked':''}><span>${p.id==='t'?'Test '+(cfg.tn||30)+' šipek':p.name}</span></label>${p.id==='w'?`<button class="chip ${cfg.wo?'cur':''}" data-act="wo">+ Around the Clock: ${cfg.wo?'ano':'ne'}</button>`:''}${p.id==='a'?`<span class="muted">po minutí D5:</span><select data-fb><option value="" ${!cfg.fb?'selected':''}>znovu D5</option><option value="12" ${cfg.fb==='12'?'selected':''}>S1 → D2</option><option value="31" ${cfg.fb==='31'?'selected':''}>S3 → D1</option><option value="alt" ${cfg.fb==='alt'?'selected':''}>střídat</option></select>`:''}${LIMOPT[p.id]?`<span class="muted">limit:</span><select data-lim="${p.id}">${LIMOPT[p.id].map(n=>`<option value="${n}" ${cfg.lim[p.id]===n?'selected':''}>${n?n+(p.id==='r'?(n<5?' pětice':' pětic'):p.id==='p'?' šipek':(n<5?' kola':' kol')):'bez limitu'}</option>`).join('')}</select>`:''}${p.id==='c'?`<span class="muted">pokusů:</span><button class="chip ${cfg.cn===10?'cur':''}" data-act="cn" data-v="10">10</button><button class="chip ${cfg.cn===15?'cur':''}" data-act="cn" data-v="15">15</button><button class="chip ${cfg.cn===20?'cur':''}" data-act="cn" data-v="20">20</button><span class="muted">šipek:</span><button class="chip ${(cfg.cd||9)===9?'cur':''}" data-act="cd" data-v="9">9</button><button class="chip ${cfg.cd===12?'cur':''}" data-act="cd" data-v="12">12 (úleva)</button>`:''}${p.id==='o'?`<span class="muted">režim:</span><select data-omode><option value="" ${!cfg.omode?'selected':''}>volný (do zásahu)</option><option value="3" ${cfg.omode==='3'?'selected':''}>profi (3 šipky na pole)</option></select>`:''}${p.id==='z'?`<span class="muted">čísla:</span><select data-zr>${Object.keys(ZRANGES).map(k=>`<option value="${k}" ${cfg.zr===k?'selected':''}>${ZRANGES[k]}</option>`).join('')}</select><span class="muted">pokusů:</span><span class="muted">${cfg.cn}</span>`:''}${p.id==='k'?`<span class="muted">pod nulou:</span><select data-bneg><option value="" ${!cfg.bneg?'selected':''}>konec hry</option><option value="1" ${cfg.bneg?'selected':''}>do mínusu</option></select>`:''}${p.id==='t'?`<span class="muted">šipek:</span><select data-tn>${[10,20,30,40].map(n=>`<option value="${n}" ${(cfg.tn||30)===n?'selected':''}>${n}</option>`).join('')}</select>`:''}</div>`).join('')}
   <div class="blk"><label class="blkl"><span>Oblíbený double (cesty zavírání):</span></label>${favSel()}</div>
   <p class="muted" style="margin:8px 0 0">Vybráno her: <b>${cfg.sel.length}</b> z ${PHASEDEF.length}</p></div>`;
 }
@@ -1059,6 +1059,14 @@ function renderTrainActive(){
   const C=`<div class="chips plan">${run.plan.map((p,i)=>`<button class="chip ${i===run.phase?'cur':''}" data-act="goto" data-i="${i}">${p.name}</button>`).join('')}</div>`;
   let h='';
   if(id==='w'){
+    if(run.wo){
+      const o=R.o.cur,t=BOB[Math.min(o.i,BOB.length-1)];
+      h+=`<div class="card"><b>Rozcvička – Around the Clock</b><p class="muted" style="margin:4px 0">Postupně D1 až D20 a Bull, na další pole po zásahu. Bez limitu šipek, rozhazujete se. Zapisuje se do statistik.</p>
+      <div class="chips">${BOB.map((x,i)=>`<span class="chip ${i<o.i||o.done?'done':i===o.i?'cur':''}">${x===25?'B':'D'+x}</span>`).join('')}</div>`;
+      if(o.done)h+=`<div class="target" style="font-size:44px">Hotovo</div><p style="text-align:center;margin:8px 0">Všech ${BOB.length} polí na <b>${o.n}</b> šipek.</p><div class="row" style="justify-content:center"><button class="b" data-act="wnew">Nová hra</button></div>`;
+      else h+=`<div class="target">${bl(t)}</div><div class="muted" style="text-align:center">šipek ve hře: ${o.n} – trefili jste?</div>${pads('whit','wmiss')}`;
+      h+=`<p class="muted" style="margin:6px 0 0">Kdykoli můžete přejít na další fázi, rozehraná hra zůstane uložená.</p></div>`;
+    }else
     h+=`<div class="card"><b>Rozcvička</b><p>Rozhoďte ruku na T20 nebo na celý terč. Nic se nezapisuje. Pak přejděte na další fázi.</p></div>`;
   }else if(id==='a'||id==='b'){
     const L=LADDERS[id],r=R[id];
@@ -1539,6 +1547,10 @@ document.addEventListener('click',async e=>{
     case 'goto':run.phase=+t.dataset.i;run.phaseStart=run.elapsed;saveDraft();break;
     case 'next':if(run.phase<run.plan.length-1){run.phase++;run.phaseStart=run.elapsed;saveDraft();}break;
     case 'bob':addBob(+t.dataset.n);return;
+    case 'wo':cfg.wo=!cfg.wo;lsSet('darts_cfg',cfg);break;
+    case 'whit':addO(true,'o');return;
+    case 'wmiss':addO(false,'o');return;
+    case 'wnew':commit('o:0:0');return;
     case 'ohit':addO(true);return;
     case 'omiss':addO(false);return;
     case 'onew':commit(ocode()+':0:0');return;
