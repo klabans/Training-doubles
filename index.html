@@ -676,7 +676,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 5. 11. 2026, 17:00';
+const BUILD='verze 5. 11. 2026, 18:00';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -961,7 +961,7 @@ function domain(vals,pad,lo,hi,step){
 /* ---------- pohledy: trénink ---------- */
 function planCard(){
   return `<div class="card"><b>Jak se jednotlivé bloky hrají</b>
-  <p class="muted" style="margin:6px 0 0"><b>Rozcvička:</b> volně rozhoďte ruku bez tlaku – házejte na T20 nebo na celý terč, třeba i na velké segmenty 20 a 16, a hledejte stejný postoj a pohyb jako při doublech. Nic se nezapisuje, až budete hotovi, přepnete na další fázi.<br>
+  <p class="muted" style="margin:6px 0 0"><b>Rozcvička:</b> volně rozhoďte ruku bez tlaku – házejte na T20 nebo na celý terč, třeba i na velké segmenty 20 a 16, a hledejte stejný postoj a pohyb jako při doublech. Nic se nezapisuje, až budete hotovi, přepnete na další fázi. Volitelně lze v nastavení zapnout „+ Around the Clock“: obyčejný Around the Clock na čísla 1 až 20 a Bull (ne na double), na další číslo po zásahu; šipek na číslo lze omezit na 1 nebo 3 (minutí = zpět na 1). Do statistik se nezapisuje.<br>
   <b>Řady:</b> šipku házíte na aktuální double. Zásah = posun na další double v řadě, minutí (i single) = zkoušíte znovu. U řady 20·10·5 můžete zapnout záchranu po minutí D5 (zbývá 5): single 1 a pak D2 (1+4), nebo single 3 a pak D1 (3+2), případně střídat. Pak házíte na D2/D1, dokud ho nezasáhnete, a průchod tím končí.<br>
   <b>Náhodná pětice:</b> aplikace vylosuje 5 různých doublů; každý musíte trefit alespoň jednou, počítají se šipky navíc.<br>
   <b>121 na 9 šipek:</b> zavřít číslo (double-out) nejvýš za 9 šipek; začíná se na 121, zavřeno = o 10 výš, nezavřeno = o 10 níž. Zapisujete, na kolik šipek se to povedlo (a volitelně kolik šipek šlo na double).<br>
@@ -1216,6 +1216,7 @@ function limitHtml(){
 }
 function howBox(id){
   const T={
+    w:'Rozhazování bez tlaku. Rozhoďte ruku na T20 nebo na celý terč, nic se nezapisuje.'+(run.wo?' Máte zapnutý Around the Clock: házíte postupně na čísla 1, 2 … 20 a Bull (jakékoli pole, ne double), na další číslo jdete po zásahu. '+(run.wn?'Na každé číslo máte '+(run.wn===1?'jen 1 šipku':'jen 3 šipky')+' – když ji minete, vracíte se na 1. ':'Šipek na číslo je neomezeně. ')+'Do statistik se nezapisuje.':' Volitelně lze v nastavení zapnout „+ Around the Clock“ (obyčejný Around the Clock na čísla, s volbou 1 nebo 3 šipek na číslo).'),
     a:'Doubly, na které se posouváte, když místo doublu trefíte single (40 → 20 → 10 bodů). Házíte postupně na D20, D10 a D5: zásah = další double, minutí = zkoušíte znovu. Cíl: projít celou řadu na co nejméně šipek. Po každém kole klepnete, která šipka (1, 2 nebo 3) double trefila, nebo Mimo; neodhozené šipky kola pokračují na další double.'+(run.fb?' Když nevyjde D5, zbývá 5 bodů: nejdřív single 1 a pak D2 (nebo single 3 a pak D1) – zasahujte ten double, dokud nesedne.':''),
     b:'Stejné jako předchozí řada, jen z 32 bodů: D16 → D8 → D4 → D2 → D1 (minutý double do singlu vám nechá přesně polovinu). Zásah = další double, minutí = znovu. Cíl: projít řadu na co nejméně šipek. Po každém kole zadáte, která šipka (1–3) trefila, nebo Mimo.',
     r:'Aplikace vylosuje 5 různých doublů. Každý musíte trefit alespoň jednou, házíte na ně postupně. Cíl: co nejméně šipek. Po každém kole zadáte, která šipka (1–3) trefila, nebo Mimo; aplikace si pamatuje, na kolikátou šipku u doublu to bylo. Učíte se zasáhnout i doubly, které normálně netrénujete.',
