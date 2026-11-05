@@ -676,7 +676,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 5. 11. 2026, 12:00';
+const BUILD='verze 5. 11. 2026, 14:00';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -982,15 +982,15 @@ const P14=[
  {t:'První šipka',sel:['w','p','r','f'],lim:{p:50,r:3},note:'50 šipek „Jedna šipka na double“ a 3 pětice. Od dneška zapisuj u každého minutí, kam šipka šla.'},
  {t:'Nejslabší double',sel:['w','b','t','f'],lim:{b:15},tn:30,weak:true,note:'Řada 16·8·4·2·1 na 15 kol a Test 30 šipek na tvůj zatím nejslabší double (aplikace ho předvyplní).'},
  {t:'Zavírání z čísla',sel:['w','z','p','f'],zr:'41-100',cn:10,lim:{p:30},note:'10 pokusů Zavírání 41–100 (sleduj doporučené cesty) a 30 šipek první šipky.'},
- {t:'Smíšený den',sel:['w','a','r','k'],lim:{a:10,r:3},note:'Řada 20·10·5, 3 pětice, Bob\'s 27. Po tréninku se podívej na statistiku „Kam míjím“.'},
+ {t:'Smíšený den',sel:['w','a','r','k','o'],lim:{a:10,r:3},om:'',note:'Řada 20·10·5, 3 pětice, Bob\'s 27 a Around the Clock (volný, zapiš si počet šipek – porovnáš ho ve dni 14). Po tréninku se podívej na statistiku „Kam míjím“.'},
  {t:'Lehký den – měření',sel:['w','t'],tn:30,tt:20,note:'Jen Test 30 šipek na D20 a pak „Další test“ na D16. Srovnej s dnem 1. Nastav si oblíbený double podle statistik.'},
  {t:'121',sel:['w','c','p','f'],cn:10,lim:{p:30},note:'10 pokusů postupného 121 a 30 šipek první šipky.'},
  {t:'Těžší čísla',sel:['w','z','b','f'],zr:'61-130',cn:10,lim:{b:10},note:'10 pokusů Zavírání 61–130 (cesty podle oblíbeného doublu) a řada 16·8·4·2·1 na 10 kol.'},
  {t:'Objem na první šipku',sel:['w','p','r','k'],lim:{p:50,r:3},note:'50 šipek první šipky a 3 pětice. Změny už by měly být vidět.'},
  {t:'Den zavírání',sel:['w','c','z','f'],cn:10,zr:'41-100',lim:{f:15},note:'10 pokusů 121, 10 pokusů Zavírání 41–100 a delší tlakový závěr (zkus obě řady).'},
- {t:'Nejslabší double podruhé',sel:['w','a','t','f'],lim:{a:15},tn:30,weak:true,note:'Řada 20·10·5 na 15 kol a Test 30 šipek na nejslabší double. Srovnej s dnem 4.'},
+ {t:'Nejslabší double podruhé',sel:['w','a','t','o','f'],lim:{a:15},tn:30,weak:true,om:'3',note:'Řada 20·10·5 na 15 kol, Test 30 šipek na nejslabší double a Around the Clock profi (3 šipky na pole) – ve Statistikách uvidíš, na kterých doublech padáš. Srovnej s dnem 4.'},
  {t:'Jako zápas',sel:['w','a','b','r','p','z','c','t','k','f'],lim:{a:5,b:5,r:2,p:20,f:5},cn:5,zr:'41-100',tn:20,tt:16,note:'Všechno krátce za sebou: limity 5 kol, 2 pětice, 121 i Zavírání po 5 pokusech, test jen 20 šipek.'},
- {t:'Závěrečné měření',sel:['w','t','k'],tn:30,tt:20,note:'Test 30 šipek na D20, pak D16 a pak na nejslabší double („Další test“, double přepni ručně). Nakonec Bob\'s 27. Srovnej s dnem 1 ve Statistikách.'}
+ {t:'Závěrečné měření',sel:['w','t','k','o'],tn:30,tt:20,om:'',note:'Test 30 šipek na D20, pak D16 a pak na nejslabší double („Další test“, double přepni ručně). Pak Bob\'s 27 a Around the Clock (volný). Srovnej s dnem 1 (testy) a dnem 6 (Around the Clock) ve Statistikách.'}
 ];
 function weakDouble(){
   const by={};try{allSessions().forEach(x=>{for(const t in x.sum.by){const o=by[t]||(by[t]={n:0,h:0});o.n+=x.sum.by[t].n;o.h+=x.sum.by[t].h;}});}catch(e){}
@@ -1006,7 +1006,7 @@ function p14Sync(){const P=cfg.p14;if(!P)return;if(!P.id){P.id=1;}const d=p14Don
 function p14apply(){
   const d=P14[cfg.p14.day-1];if(!d)return;
   cfg.sel=d.sel.slice();cfg.lim=Object.assign({a:10,b:10,r:3,f:10,p:30},d.lim||{});
-  if(d.cn)cfg.cn=d.cn;if(d.zr)cfg.zr=d.zr;if(d.tn)cfg.tn=d.tn;
+  if(d.cn)cfg.cn=d.cn;if(d.zr)cfg.zr=d.zr;if(d.tn)cfg.tn=d.tn;cfg.omode=d.om||'';
   cfg.p14.tt=d.weak?weakDouble():(d.tt||20);
   lsSet('darts_cfg',cfg);
 }
@@ -1018,7 +1018,7 @@ function p14Card(){
   <p style="margin:4px 0"><b>${d.t}</b>${done.includes(P.day)?' <span class="muted">(odtrénováno)</span>':''}</p><p class="muted" style="margin:4px 0">${d.note}${d.weak?` Dnes: <b>${bl(P.tt||16)}</b>.`:''}</p>
   <p class="muted" style="margin:6px 0 0">Hry a limity pro dnešek jsou nastavené níže. Po uložení tréninku plán přejde na další den. 30–35 minut, jeden den v týdnu volno. Pozastavení ani přepnutí na jinou předvolbu postup nesmaže – po návratu k plánu pokračuješ, kde jsi skončil.</p>
   <button class="howbtn" data-act="p14how" aria-expanded="${!!P.how}">ℹ️ Proč zrovna takhle ${P.how?'▲':'▼'}</button>
-  ${P.how?`<div class="how">Plán má tři části. <b>Dny 1–2 a 7, 14</b> jsou měření: Test šipek na stejných doublech, abys poznal, jestli se posouváš. <b>Dny 3–7</b> jsou objem – stovky šipek na double, hlavně na první šipku, a sběr dat o tom, kam míjíš (podle toho poznáš, jestli upravit postoj, nebo vypuštění). <b>Dny 8–13</b> přidávají zavírání z čísla a tlak: v legu nerozhoduje double sám o sobě, ale jestli se na něj dostaneš a trefíš ho první šipkou. Každý den končí hrou pod tlakem. Nejslabší double se vybírá automaticky z tvých statistik (minimálně 30 šipek). Za 14 dní je reálné zlepšení o 5–10 procentních bodů na hlavních doublech – statistika „Posl. 3 vs. předchozí 3“ ukáže, jestli je to víc než náhoda. Hry si můžeš pro daný den dál upravit v seznamu níže.</div>`:''}
+  ${P.how?`<div class="how">Plán má tři části. <b>Dny 1–2 a 7, 14</b> jsou měření: Test šipek na stejných doublech (a Around the Clock ve dnech 6 a 14), abys poznal, jestli se posouváš. <b>Dny 3–7</b> jsou objem – stovky šipek na double, hlavně na první šipku, a sběr dat o tom, kam míjíš (podle toho poznáš, jestli upravit postoj, nebo vypuštění). <b>Dny 8–13</b> přidávají zavírání z čísla a tlak: v legu nerozhoduje double sám o sobě, ale jestli se na něj dostaneš a trefíš ho první šipkou. Každý den končí hrou pod tlakem. Nejslabší double se vybírá automaticky z tvých statistik (minimálně 30 šipek). Za 14 dní je reálné zlepšení o 5–10 procentních bodů na hlavních doublech – statistika „Posl. 3 vs. předchozí 3“ ukáže, jestli je to víc než náhoda. Hry si můžeš pro daný den dál upravit v seznamu níže.</div>`:''}
   </div>`;
 }
 function cfgCard(){
