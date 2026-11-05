@@ -568,7 +568,7 @@ function replay(darts){
       oc.pro=p==='ot';oc.n++;oc.vd++;
       const q=oby[tg]||(oby[tg]={n:0,h:0});q.n++;
       if(h==='1'){q.h++;oc.i++;oc.peak=Math.max(oc.peak,oc.i);oc.vd=0;if(oc.i>=BOB.length)oc.done=true;}
-      else if(oc.pro&&oc.vd>=3){oc.fails[tg]=(oc.fails[tg]||0)+1;oc.resets++;oc.i=0;oc.vd=0;}
+      else if(oc.pro&&oc.vd>=3){oc.fails[tg]=(oc.fails[tg]||0)+1;oc.resets++;oc.i=Math.max(0,oc.i-1);oc.vd=0;}
       continue;
     }
     if(p==='ax'||p==='ay'){
@@ -676,7 +676,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 5. 11. 2026, 18:00';
+const BUILD='verze 5. 11. 2026, 19:00';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -961,14 +961,14 @@ function domain(vals,pad,lo,hi,step){
 /* ---------- pohledy: trénink ---------- */
 function planCard(){
   return `<div class="card"><b>Jak se jednotlivé bloky hrají</b>
-  <p class="muted" style="margin:6px 0 0"><b>Rozcvička:</b> volně rozhoďte ruku bez tlaku – házejte na T20 nebo na celý terč, třeba i na velké segmenty 20 a 16, a hledejte stejný postoj a pohyb jako při doublech. Nic se nezapisuje, až budete hotovi, přepnete na další fázi. Volitelně lze v nastavení zapnout „+ Around the Clock“: obyčejný Around the Clock na čísla 1 až 20 a Bull (ne na double), na další číslo po zásahu; šipek na číslo lze omezit na 1 nebo 3 (minutí = zpět na 1). Do statistik se nezapisuje.<br>
+  <p class="muted" style="margin:6px 0 0"><b>Rozcvička:</b> volně rozhoďte ruku bez tlaku – házejte na T20 nebo na celý terč, třeba i na velké segmenty 20 a 16, a hledejte stejný postoj a pohyb jako při doublech. Nic se nezapisuje, až budete hotovi, přepnete na další fázi. Volitelně lze v nastavení zapnout „+ Around the Clock“: obyčejný Around the Clock na čísla 1 až 20 a Bull (ne na double), na další číslo po zásahu; šipek na číslo lze omezit na 1 nebo 3 (minutí = o číslo zpět). Do statistik se nezapisuje.<br>
   <b>Řady:</b> šipku házíte na aktuální double. Zásah = posun na další double v řadě, minutí (i single) = zkoušíte znovu. U řady 20·10·5 můžete zapnout záchranu po minutí D5 (zbývá 5): single 1 a pak D2 (1+4), nebo single 3 a pak D1 (3+2), případně střídat. Pak házíte na D2/D1, dokud ho nezasáhnete, a průchod tím končí.<br>
   <b>Náhodná pětice:</b> aplikace vylosuje 5 různých doublů; každý musíte trefit alespoň jednou, počítají se šipky navíc.<br>
   <b>121 na 9 šipek:</b> zavřít číslo (double-out) nejvýš za 9 šipek; začíná se na 121, zavřeno = o 10 výš, nezavřeno = o 10 níž. Zapisujete, na kolik šipek se to povedlo (a volitelně kolik šipek šlo na double).<br>
   <b>Zavírání z náhodného čísla:</b> náhodné číslo ve zvoleném rozsahu, 9 šipek na zavření – trénink přípravy na double i samotného doublu.<br>
   <b>Jedna šipka na double:</b> jedna šipka na vylosovaný double, měří se úspěšnost první šipky na double.<br>
   <b>Test šipek:</b> 10, 20, 30 nebo 40 šipek (zvolíte v nastavení) na jeden double, počet zásahů – větší vzorek pro poctivé srovnání. Double si zvolíte sami, tlačítkem „Náhodný double“ ho nechte vylosovat, nebo zapněte losování po každém testu.<br>
-  <b>Around the Clock:</b> postupně D1 až D20 a Bull, na další pole se jde po zásahu. Volně se hází do zásahu (méně šipek = lépe), v režimu profi jsou na pole jen 3 šipky a po minutí se vracíte na D1 – ukáže, na kterých doublech padáte.<br>
+  <b>Around the Clock:</b> postupně D1 až D20 a Bull, na další pole se jde po zásahu. Volně se hází do zásahu (méně šipek = lépe), v režimu profi jsou na pole jen 3 šipky a po minutí se vracíte o pole zpět – ukáže, na kterých doublech padáte.<br>
   <b>Bob's 27:</b> začínáte na 27 bodech, na každý double D1 až Bull házíte 3 šipky – zásah přičte hodnotu doublu, 0 zásahů ji odečte. Končí, když skóre klesne pod nulu; v nastavení lze zvolit, že se hraje dál i do mínusu.<br>
   <b>Tlakový závěr:</b> hraje se jedna z řad (16·8·4·2·1 nebo 20·10·5, přepínač je v bloku, výchozí je 16·8·4·2·1) a začíná se od jejího prvního doublu. V každém kole máte 3 šipky: zásah = postup na další double v řadě a zbylé šipky kola házíte už na něj; kolo bez jediného zásahu = o jeden stupeň zpět (na úplném začátku zůstanete). Počítá se nejvyšší dosažená úroveň a počet dokončených řad.<br>
   <b>14denní plán:</b> předvolba, která za tebe každý den nastaví hry a limity (zhruba 30–35 minut). Dny 1, 7 a 14 jsou měření na stejných doublech, mezi nimi je objem na první šipku a zavírání z čísla, vždy se závěrem pod tlakem. Po uložení tréninku se plán posune na další den; dnem jde i přeskakovat. Podrobnější vysvětlení je přímo u plánu.<br>
@@ -1026,7 +1026,7 @@ function cfgCard(){
   return `<div class="card"><b>Složení tréninku</b>
   <div class="chips presets">${Object.keys(PRESETS).map(k=>`<button class="chip ${!cfg.p14&&same(k)?'cur':''}" data-act="preset" data-v="${k}">${PRESETS[k].label}<small>${PRESETS[k].sel.length} her</small></button>`).join('')}<button class="chip ${cfg.p14?'cur':''}" data-act="p14on">14denní plán<small>den po dni</small></button></div>
   ${cfg.p14?p14Card():''}
-  ${PHASEDEF.map(p=>`<div class="blk"><label class="blkl"><input type="checkbox" data-cfg="${p.id}" ${cfg.sel.includes(p.id)?'checked':''}><span>${p.id==='t'?'Test '+(cfg.tn||30)+' šipek':p.name}</span></label>${p.id==='w'?`<button class="chip ${cfg.wo?'cur':''}" data-act="wo">+ Around the Clock: ${cfg.wo?'ano':'ne'}</button>${cfg.wo?`<span class="muted">šipek na číslo:</span><select data-wn><option value="0" ${!cfg.wn?'selected':''}>bez limitu</option><option value="1" ${cfg.wn===1?'selected':''}>1 (minutí = zpět na 1)</option><option value="3" ${cfg.wn===3?'selected':''}>3 (minutí = zpět na 1)</option></select>`:''}`:''}${p.id==='a'?`<span class="muted">po minutí D5:</span><select data-fb><option value="" ${!cfg.fb?'selected':''}>znovu D5</option><option value="12" ${cfg.fb==='12'?'selected':''}>S1 → D2</option><option value="31" ${cfg.fb==='31'?'selected':''}>S3 → D1</option><option value="alt" ${cfg.fb==='alt'?'selected':''}>střídat</option></select>`:''}${LIMOPT[p.id]?`<span class="muted">limit:</span><select data-lim="${p.id}">${LIMOPT[p.id].map(n=>`<option value="${n}" ${cfg.lim[p.id]===n?'selected':''}>${n?n+(p.id==='r'?(n<5?' pětice':' pětic'):p.id==='p'?' šipek':(n<5?' kola':' kol')):'bez limitu'}</option>`).join('')}</select>`:''}${p.id==='c'?`<span class="muted">pokusů:</span><button class="chip ${cfg.cn===10?'cur':''}" data-act="cn" data-v="10">10</button><button class="chip ${cfg.cn===15?'cur':''}" data-act="cn" data-v="15">15</button><button class="chip ${cfg.cn===20?'cur':''}" data-act="cn" data-v="20">20</button><span class="muted">šipek:</span><button class="chip ${(cfg.cd||9)===9?'cur':''}" data-act="cd" data-v="9">9</button><button class="chip ${cfg.cd===12?'cur':''}" data-act="cd" data-v="12">12 (úleva)</button>`:''}${p.id==='o'?`<span class="muted">režim:</span><select data-omode><option value="" ${!cfg.omode?'selected':''}>volný (do zásahu)</option><option value="3" ${cfg.omode==='3'?'selected':''}>profi (3 šipky na pole)</option></select>`:''}${p.id==='z'?`<span class="muted">čísla:</span><select data-zr>${Object.keys(ZRANGES).map(k=>`<option value="${k}" ${cfg.zr===k?'selected':''}>${ZRANGES[k]}</option>`).join('')}</select><span class="muted">pokusů:</span><span class="muted">${cfg.cn}</span>`:''}${p.id==='k'?`<span class="muted">pod nulou:</span><select data-bneg><option value="" ${!cfg.bneg?'selected':''}>konec hry</option><option value="1" ${cfg.bneg?'selected':''}>do mínusu</option></select>`:''}${p.id==='t'?`<span class="muted">šipek:</span><select data-tn>${[10,20,30,40].map(n=>`<option value="${n}" ${(cfg.tn||30)===n?'selected':''}>${n}</option>`).join('')}</select>`:''}</div>`).join('')}
+  ${PHASEDEF.map(p=>`<div class="blk"><label class="blkl"><input type="checkbox" data-cfg="${p.id}" ${cfg.sel.includes(p.id)?'checked':''}><span>${p.id==='t'?'Test '+(cfg.tn||30)+' šipek':p.name}</span></label>${p.id==='w'?`<button class="chip ${cfg.wo?'cur':''}" data-act="wo">+ Around the Clock: ${cfg.wo?'ano':'ne'}</button>${cfg.wo?`<span class="muted">šipek na číslo:</span><select data-wn><option value="0" ${!cfg.wn?'selected':''}>bez limitu</option><option value="1" ${cfg.wn===1?'selected':''}>1 (minutí = o číslo zpět)</option><option value="3" ${cfg.wn===3?'selected':''}>3 (minutí = o číslo zpět)</option></select>`:''}`:''}${p.id==='a'?`<span class="muted">po minutí D5:</span><select data-fb><option value="" ${!cfg.fb?'selected':''}>znovu D5</option><option value="12" ${cfg.fb==='12'?'selected':''}>S1 → D2</option><option value="31" ${cfg.fb==='31'?'selected':''}>S3 → D1</option><option value="alt" ${cfg.fb==='alt'?'selected':''}>střídat</option></select>`:''}${LIMOPT[p.id]?`<span class="muted">limit:</span><select data-lim="${p.id}">${LIMOPT[p.id].map(n=>`<option value="${n}" ${cfg.lim[p.id]===n?'selected':''}>${n?n+(p.id==='r'?(n<5?' pětice':' pětic'):p.id==='p'?' šipek':(n<5?' kola':' kol')):'bez limitu'}</option>`).join('')}</select>`:''}${p.id==='c'?`<span class="muted">pokusů:</span><button class="chip ${cfg.cn===10?'cur':''}" data-act="cn" data-v="10">10</button><button class="chip ${cfg.cn===15?'cur':''}" data-act="cn" data-v="15">15</button><button class="chip ${cfg.cn===20?'cur':''}" data-act="cn" data-v="20">20</button><span class="muted">šipek:</span><button class="chip ${(cfg.cd||9)===9?'cur':''}" data-act="cd" data-v="9">9</button><button class="chip ${cfg.cd===12?'cur':''}" data-act="cd" data-v="12">12 (úleva)</button>`:''}${p.id==='o'?`<span class="muted">režim:</span><select data-omode><option value="" ${!cfg.omode?'selected':''}>volný (do zásahu)</option><option value="3" ${cfg.omode==='3'?'selected':''}>profi (3 šipky na pole)</option></select>`:''}${p.id==='z'?`<span class="muted">čísla:</span><select data-zr>${Object.keys(ZRANGES).map(k=>`<option value="${k}" ${cfg.zr===k?'selected':''}>${ZRANGES[k]}</option>`).join('')}</select><span class="muted">pokusů:</span><span class="muted">${cfg.cn}</span>`:''}${p.id==='k'?`<span class="muted">pod nulou:</span><select data-bneg><option value="" ${!cfg.bneg?'selected':''}>konec hry</option><option value="1" ${cfg.bneg?'selected':''}>do mínusu</option></select>`:''}${p.id==='t'?`<span class="muted">šipek:</span><select data-tn>${[10,20,30,40].map(n=>`<option value="${n}" ${(cfg.tn||30)===n?'selected':''}>${n}</option>`).join('')}</select>`:''}</div>`).join('')}
   <div class="blk"><label class="blkl"><span>Oblíbený double (cesty zavírání):</span></label>${favSel()}</div>
   <p class="muted" style="margin:8px 0 0">Vybráno her: <b>${cfg.sel.length}</b> z ${PHASEDEF.length}</p></div>`;
 }
@@ -1061,10 +1061,10 @@ function renderTrainActive(){
   if(id==='w'){
     if(run.wo){
       const i=run.wi||0,dn=i>=BOB.length,t=BOB[Math.min(i,BOB.length-1)],lb=x=>x===25?'Bull':String(x);
-      h+=`<div class="card"><b>Rozcvička – Around the Clock</b><p class="muted" style="margin:4px 0">Obyčejný Around the Clock na čísla (jakékoli pole, ne double): 1, 2 … 20 a Bull, na další číslo po zásahu. ${run.wn?`Na každé číslo máte jen ${run.wn===1?'1 šipku':'3 šipky'} – když ji minete, vracíte se na 1. `:''}Jen na rozhazování, do statistik se nezapisuje.</p>
+      h+=`<div class="card"><b>Rozcvička – Around the Clock</b><p class="muted" style="margin:4px 0">Obyčejný Around the Clock na čísla (jakékoli pole, ne double): 1, 2 … 20 a Bull, na další číslo po zásahu. ${run.wn?`Na každé číslo máte jen ${run.wn===1?'1 šipku':'3 šipky'} – když ji minete, vracíte se o číslo zpět. `:''}Jen na rozhazování, do statistik se nezapisuje.</p>
       <div class="chips">${BOB.map((x,j)=>`<span class="chip ${j<i?'done':j===i?'cur':''}">${x===25?'B':x}</span>`).join('')}</div>`;
       if(dn)h+=`<div class="target" style="font-size:44px">Hotovo</div><p style="text-align:center;margin:8px 0">Všech ${BOB.length} čísel na <b>${run.wd||0}</b> šipek.</p><div class="row" style="justify-content:center"><button class="b" data-act="wnew">Nová hra</button></div>`;
-      else h+=`<div class="target">${lb(t)}</div><div class="muted" style="text-align:center">šipek ve hře: ${run.wd||0}${run.wn?` · šipka ${(run.wv||0)+1}/${run.wn} na číslo · návratů ${run.wr||0}`:''} – trefili jste?</div>${pads('whit','wmiss','✓ Zásah','✗ Mimo')}`;
+      else h+=`<div class="target">${lb(t)}</div><div class="muted" style="text-align:center">šipek ve hře: ${run.wd||0}${run.wn?` · šipka ${(run.wv||0)+1}/${run.wn} na číslo · kroků zpět ${run.wr||0}`:''} – trefili jste?</div>${pads('whit','wmiss','✓ Zásah','✗ Mimo')}`;
       h+=`<p class="muted" style="margin:6px 0 0">Kdykoli můžete přejít na další fázi.</p></div>`;
     }else
     h+=`<div class="card"><b>Rozcvička</b><p>Rozhoďte ruku na T20 nebo na celý terč. Nic se nezapisuje. Pak přejděte na další fázi.</p></div>`;
@@ -1149,11 +1149,11 @@ function renderTrainActive(){
     h+=`<div class="card"><div class="muted" style="text-align:center">Around the Clock${pro?' – profi (3 šipky na pole)':''} · pole ${Math.min(o.i+1,BOB.length)}/${BOB.length}</div>
       <div class="chips">${BOB.map((x,i)=>`<span class="chip ${i<o.i||o.done?'done':i===o.i?'cur':''}">${x===25?'B':'D'+x}</span>`).join('')}</div>`;
     if(o.done){
-      h+=`<div class="target" style="font-size:44px">Hotovo</div><p style="text-align:center;margin:8px 0">Všech ${BOB.length} polí na <b>${o.n}</b> šipek${pro?` (návratů na D1: ${o.resets})`:''}.</p><div class="row" style="justify-content:center"><button class="b" data-act="onew">Nová hra</button></div>`;
+      h+=`<div class="target" style="font-size:44px">Hotovo</div><p style="text-align:center;margin:8px 0">Všech ${BOB.length} polí na <b>${o.n}</b> šipek${pro?` (kroků zpět: ${o.resets})`:''}.</p><div class="row" style="justify-content:center"><button class="b" data-act="onew">Nová hra</button></div>`;
     }else{
       h+=`<div class="target">${bl(t)}</div><div class="muted" style="text-align:center">${pro?`šipka ${o.vd+1}/3 na toto pole`:`šipek ve hře: ${o.n}`} – trefili jste?</div>${pads('ohit','omiss')}`;
     }
-    h+=`<div class="muted">Šipek ve hře: <b>${o.n}</b>${pro?` · návratů: <b>${o.resets}</b> · nejdál: <b>${o.peak}/${BOB.length}</b>`:''} · dokončených her: <b>${dn.length}</b>${dn.length?` · nejlepší ${Math.min(...dn.map(g=>g.n))} šipek`:''}</div></div>`;
+    h+=`<div class="muted">Šipek ve hře: <b>${o.n}</b>${pro?` · kroků zpět: <b>${o.resets}</b> · nejdál: <b>${o.peak}/${BOB.length}</b>`:''} · dokončených her: <b>${dn.length}</b>${dn.length?` · nejlepší ${Math.min(...dn.map(g=>g.n))} šipek`:''}</div></div>`;
   }else if(id==='k'){
     const c=R.k.cur,t=BOB[Math.min(c.i,BOB.length-1)],v=2*t;
     const end=c.over||c.done;
@@ -1216,7 +1216,7 @@ function limitHtml(){
 }
 function howBox(id){
   const T={
-    w:'Rozhazování bez tlaku. Rozhoďte ruku na T20 nebo na celý terč, nic se nezapisuje.'+(run.wo?' Máte zapnutý Around the Clock: házíte postupně na čísla 1, 2 … 20 a Bull (jakékoli pole, ne double), na další číslo jdete po zásahu. '+(run.wn?'Na každé číslo máte '+(run.wn===1?'jen 1 šipku':'jen 3 šipky')+' – když ji minete, vracíte se na 1. ':'Šipek na číslo je neomezeně. ')+'Do statistik se nezapisuje.':' Volitelně lze v nastavení zapnout „+ Around the Clock“ (obyčejný Around the Clock na čísla, s volbou 1 nebo 3 šipek na číslo).'),
+    w:'Rozhazování bez tlaku. Rozhoďte ruku na T20 nebo na celý terč, nic se nezapisuje.'+(run.wo?' Máte zapnutý Around the Clock: házíte postupně na čísla 1, 2 … 20 a Bull (jakékoli pole, ne double), na další číslo jdete po zásahu. '+(run.wn?'Na každé číslo máte '+(run.wn===1?'jen 1 šipku':'jen 3 šipky')+' – když ji minete, vracíte se o číslo zpět. ':'Šipek na číslo je neomezeně. ')+'Do statistik se nezapisuje.':' Volitelně lze v nastavení zapnout „+ Around the Clock“ (obyčejný Around the Clock na čísla, s volbou 1 nebo 3 šipek na číslo).'),
     a:'Doubly, na které se posouváte, když místo doublu trefíte single (40 → 20 → 10 bodů). Házíte postupně na D20, D10 a D5: zásah = další double, minutí = zkoušíte znovu. Cíl: projít celou řadu na co nejméně šipek. Po každém kole klepnete, která šipka (1, 2 nebo 3) double trefila, nebo Mimo; neodhozené šipky kola pokračují na další double.'+(run.fb?' Když nevyjde D5, zbývá 5 bodů: nejdřív single 1 a pak D2 (nebo single 3 a pak D1) – zasahujte ten double, dokud nesedne.':''),
     b:'Stejné jako předchozí řada, jen z 32 bodů: D16 → D8 → D4 → D2 → D1 (minutý double do singlu vám nechá přesně polovinu). Zásah = další double, minutí = znovu. Cíl: projít řadu na co nejméně šipek. Po každém kole zadáte, která šipka (1–3) trefila, nebo Mimo.',
     r:'Aplikace vylosuje 5 různých doublů. Každý musíte trefit alespoň jednou, házíte na ně postupně. Cíl: co nejméně šipek. Po každém kole zadáte, která šipka (1–3) trefila, nebo Mimo; aplikace si pamatuje, na kolikátou šipku u doublu to bylo. Učíte se zasáhnout i doubly, které normálně netrénujete.',
@@ -1225,7 +1225,7 @@ function howBox(id){
     p:'Jedna šipka na vylosovaný double (nejčastěji ty, na kterých se zavírá: D20, D16, D18, D10, D8, D12, D4, D2). Měří se úspěšnost první šipky na double – to, co v legu často rozhoduje. Po minutí můžete volitelně zapsat, kam šipka šla.',
     t:'Čisté měření: '+(run.tn||30)+' šipek na jeden double a počet zásahů. Každou šipku zadáte jako ✓ Double nebo ✗ Mimo. Velký vzorek ukáže skutečnou úspěšnost a časem i to, jestli se zlepšujete. Double si zvolte, nebo nechte vylosovat.',
     k:'Klasická hra na doubly: začínáte na 27 bodech a na každý double od D1 po Bull házíte 3 šipky. Každý zásah přičte hodnotu doublu (D8 = 16), 0 zásahů ji odečte. '+(run.bneg?'Skóre smí klesnout i pod nulu a hra pokračuje, zásahy ho zase zvyšují. Končí se až po Bullu, takže jde o konečné skóre.':'Pod nulou konec. Cíl: dojít co nejdál a s co nejvyšším skóre.')+'',
-    o:'Hodíte postupně D1, D2 … D20 a nakonec Bull; na další pole se jde až po zásahu. '+(run.omode==='3'?'Profi: na každé pole máte jen 3 šipky – když je všechny minete, vracíte se na D1 a aplikace si zapamatuje, na kterém doublu jste spadli.':'Volně: házíte, dokud pole netrefíte. Cíl: co nejméně šipek za všech 21 polí.'),
+    o:'Hodíte postupně D1, D2 … D20 a nakonec Bull; na další pole se jde až po zásahu. '+(run.omode==='3'?'Profi: na každé pole máte jen 3 šipky – když je všechny minete, vracíte se o pole zpět a aplikace si zapamatuje, na kterém doublu jste spadli.':'Volně: házíte, dokud pole netrefíte. Cíl: co nejméně šipek za všech 21 polí.'),
     f:'Tlak jako v zápase: máte 3 šipky v kole. Zásah = postup na další double v řadě a zbylé šipky kola házíte už na něj. Kolo, v němž nezasáhnete ani jednou, = o stupeň zpět. Cíl: zavřít celou řadu bez kroku zpět (to se odměňuje pochvalou).'
   };
   if(!T[id])return '';const o=!!gHow[id];
@@ -1415,7 +1415,7 @@ function renderStats(){
       const fk=Object.keys(fl).map(Number).sort((a,b)=>fl[b]-fl[a]),mx=fk.length?fl[fk[0]]:1;
       h+=`<div class="tiles"><div class="tile"><span class="lbl">Her profi</span><span class="v">${all.length}</span></div><div class="tile"><span class="lbl">Dokončeno</span><span class="v">${all.filter(g=>g.done).length}</span></div><div class="tile"><span class="lbl">Nejdál</span><span class="v">${Math.max(...all.map(g=>g.peak))}/21</span></div></div>
       <div class="card"><b>Profi: nejdál došlé pole v tréninku</b>${lineChart('c13',pl,[{name:'Pole',color:'var(--s1)',vals:pv,fmt:v=>v+'/21'}],0,21,v=>Math.round(v))}</div>
-      ${fk.length?`<div class="card"><b>Na kterém doublu padáte (návrat na D1)</b><div class="bars">${fk.map(t=>`<div class="r"><b>${bl(t)}</b><div class="t"><div class="f" style="width:${fl[t]/mx*100}%"></div></div><span>${fl[t]}×</span></div>`).join('')}</div><p class="muted" style="margin:6px 0 0">Tyhle doubly trénujte zvlášť.</p></div>`:''}`;
+      ${fk.length?`<div class="card"><b>Na kterém doublu padáte (krok zpět)</b><div class="bars">${fk.map(t=>`<div class="r"><b>${bl(t)}</b><div class="t"><div class="f" style="width:${fl[t]/mx*100}%"></div></div><span>${fl[t]}×</span></div>`).join('')}</div><p class="muted" style="margin:6px 0 0">Tyhle doubly trénujte zvlášť.</p></div>`:''}`;
     }
   }
   const ZL=L.filter(x=>x.sum.zTries);
@@ -1550,7 +1550,7 @@ document.addEventListener('click',async e=>{
     case 'bob':addBob(+t.dataset.n);return;
     case 'wo':cfg.wo=!cfg.wo;lsSet('darts_cfg',cfg);break;
     case 'whit':run.wi=(run.wi||0)+1;run.wd=(run.wd||0)+1;run.wv=0;saveDraft();break;
-    case 'wmiss':run.wd=(run.wd||0)+1;run.wv=(run.wv||0)+1;if(run.wn&&run.wv>=run.wn){run.wi=0;run.wv=0;run.wr=(run.wr||0)+1;}saveDraft();break;
+    case 'wmiss':run.wd=(run.wd||0)+1;run.wv=(run.wv||0)+1;if(run.wn&&run.wv>=run.wn){run.wi=Math.max(0,(run.wi||0)-1);run.wv=0;run.wr=(run.wr||0)+1;}saveDraft();break;
     case 'wnew':run.wi=0;run.wd=0;run.wv=0;run.wr=0;saveDraft();break;
     case 'ohit':addO(true);return;
     case 'omiss':addO(false);return;
