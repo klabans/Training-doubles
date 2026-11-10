@@ -171,7 +171,7 @@ button.dbtn:disabled{cursor:default}
 </style>
 <script>
 const THEMES={
- a:{name:'A · Neon Oche',desc:'Tmavý, sportovní, zelená záře (výchozí)',font:'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap',prev:{bg:'#0A0E13',fg:'#E8EEF5',hit:'#2EE59D',hitTx:'#04130C',miss:'transparent',missTx:'#FF5468',missBd:'#FF5468'},css:`/* ===== Téma A: Neon Oche ===== */
+ a:{name:'A · Neon Oche',desc:'Tmavý, sportovní, zelená záře',font:'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap',prev:{bg:'#0A0E13',fg:'#E8EEF5',hit:'#2EE59D',hitTx:'#04130C',miss:'transparent',missTx:'#FF5468',missBd:'#FF5468'},css:`/* ===== Téma A: Neon Oche ===== */
 :root{color-scheme:dark;--bg:#0A0E13;--card:#121923;--line:#1E2A38;--grid:#1E2A38;--tx:#E8EEF5;--tx2:#B7C4D3;--tx3:#8EA0B5;--s1:#2EE59D;--s2:#FF5468;--btn:#2EE59D;--btntx:#04130C;--ring:#0A0E13;--ink:#E8EEF5;--bd-black:#0E141C;--bd-cream:#1B2735;--bd-red:#FF5468;--bd-green:#2EE59D}
 body{background:var(--bg);color:var(--tx);font-family:'Inter',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 h1,h2,.big,.target,.tile .v,.tab,.subtitle,.kicker{font-family:'Barlow Condensed','Arial Narrow',system-ui,sans-serif}
@@ -342,16 +342,81 @@ select,input[type=email],input[type=password]{background:#fff;border:1px solid v
   .bdisc .target{font-size:124px}
   .kp .b,.pads4 .b{font-size:46px}
 }
+`},
+ d:{name:'D · TV turnaj',desc:'Jako televizní grafika velkých turnajů – tmavá, zlatá, červená, šikmé lišty (výchozí)',font:'https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&display=swap',prev:{bg:'#090B16',fg:'#FFFFFF',hit:'#FFC72C',hitTx:'#14100A',miss:'#D6002A',missTx:'#FFFFFF',missBd:'#D6002A'},css:`/* ===== Téma D: TV turnaj ===== */
+:root{color-scheme:dark;--bg:#090B16;--card:#121729;--line:#252C47;--grid:#1C2238;--tx:#F5F7FC;--tx2:#C3C9DA;--tx3:#8F98B0;--s1:#FFC72C;--s2:#FF3B52;--btn:#FFC72C;--btntx:#14100A;--ring:#090B16;--ink:#F5F7FC;--red:#D6002A;--pg:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)}
+body{background:radial-gradient(1200px 600px at 50% -200px,#1A2142,transparent 70%),var(--bg);background-attachment:fixed;color:var(--tx);font-family:'Barlow',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+h1,h2,.big,.target,.tile .v,.tab,.subtitle,.kicker,.chip,.lbl,th{font-family:'Barlow Condensed','Arial Narrow',system-ui,sans-serif}
+h2{font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:22px}
+h2::before{content:'';display:inline-block;width:6px;height:.85em;background:var(--s1);margin-right:9px;transform:skewX(-16deg);vertical-align:-1px}
+.big,.tile .v{font-style:italic;color:var(--s1)}
+.lbl,th{text-transform:uppercase;letter-spacing:.08em;font-weight:700;font-size:13px}
+.banner{position:relative;overflow:hidden;color:#fff;background:linear-gradient(105deg,transparent 0 76%,var(--red) 76% 80%,transparent 80% 82%,#FFC72C 82% 83%,transparent 83%),linear-gradient(180deg,#141A33,#0B0E1C);border-bottom:3px solid var(--s1)}
+.binner{position:relative;max-width:1180px;margin:0 auto;padding:16px 18px 14px}
+.bboard{display:none}
+.kicker{display:inline-block;background:var(--red);color:#fff;font:italic 800 13px/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase;padding:5px 14px;clip-path:var(--pg)}
+.logo{height:1.15em;width:auto;display:block;flex:none}
+.banner h1{display:flex;align-items:center;gap:.22em;margin:8px 0 0;font:italic 900 38px/.95 'Barlow Condensed','Arial Narrow',sans-serif;text-transform:uppercase;letter-spacing:.01em;max-width:75%}
+.subtitle{color:var(--s1);margin:8px 0 0;font:italic 800 30px/1 'Barlow Condensed','Arial Narrow',sans-serif;text-transform:uppercase}
+.tabs{border-bottom:0;background:#0E1222;border:1px solid var(--line);padding:4px;gap:4px;border-radius:4px}
+.tab{text-transform:uppercase;font-style:italic;letter-spacing:.06em;font-weight:800;color:var(--tx3);font-size:18px;border-bottom:0;clip-path:var(--pg);padding:8px 18px}
+.tab[aria-selected=true]{color:#14100A;background:var(--s1)}
+.card,.tile{background:linear-gradient(180deg,#151B30,#10142A);border:1px solid var(--line);border-top:3px solid var(--red);border-radius:4px}
+.tile{border-top-color:var(--s1)}
+.card.verdict{border-left:6px solid var(--s1)}
+.note{background:rgba(214,0,42,.16);border:1px solid var(--red);border-radius:4px;color:var(--tx)}
+button.b{font-family:'Barlow',system-ui,sans-serif;border-radius:4px;color:var(--btntx)}
+button.b.ghost{background:#1A2038;color:var(--tx);border-color:var(--line)}
+button.b.out{background:transparent;color:var(--s1);border-color:var(--s1)}
+button.b.miss{background:var(--red);border-color:var(--red);color:#fff}
+button.b.start{font:italic 900 24px/1.1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.08em;text-transform:uppercase;clip-path:var(--pg);border-radius:0}
+@keyframes pl{50%{filter:brightness(1.25)}}
+.pads .b,.pads4 .b,.kp .b,.dbtn{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-style:italic;font-weight:900;clip-path:var(--pg);border-radius:0}
+.kp .b,.pads4 .b{font-size:42px}
+.pads .b{font-size:30px;text-transform:uppercase;letter-spacing:.04em}
+.kp .b.miss,.pads4 .b.miss{font-size:28px;text-transform:uppercase}
+.kp .b small,.pads4 .b small{font-family:'Barlow',system-ui,sans-serif;font-style:normal;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.chip{border:1px solid var(--line);border-radius:4px;color:var(--tx3);font-weight:700;font-style:italic;text-transform:uppercase;letter-spacing:.04em;background:#10142A}
+.chip.cur{border-color:var(--s1);background:var(--s1);color:#14100A}
+.chip.done{color:var(--tx3);opacity:.7}
+.presets .chip{font-weight:800;font-size:18px;color:var(--tx)}
+.presets .chip.cur{color:#14100A}
+.presets .chip small{font-family:'Barlow',system-ui,sans-serif;font-style:normal;text-transform:none;letter-spacing:0;color:var(--tx3);font-weight:500;font-size:12px}
+.presets .chip.cur small{color:#3A2E08}
+.dcol{border-radius:4px}
+.bars .t{border-radius:0}.bars .f{background:linear-gradient(90deg,#E0A800,var(--s1));border-radius:0}
+.how{border-left-color:var(--s1);color:var(--tx2)}
+.praise{background:linear-gradient(105deg,#141A33 0 70%,var(--red) 70% 74%,#FFC72C 74% 76%,#141A33 76%);border:2px solid var(--s1);border-radius:4px;color:#fff;visibility:hidden}
+.praise b{font-style:italic;font-family:'Barlow Condensed','Arial Narrow',sans-serif;text-transform:uppercase;color:var(--s1)}
+.praise.show{visibility:visible}
+select,input[type=email],input[type=password]{background:#0E1222;border:1px solid var(--line);border-radius:4px;color:var(--tx)}
+.tip{background:#0E1222;border-color:var(--s1)}
+.bwrap{position:relative;width:min(310px,82vw);aspect-ratio:1;margin:4px auto;--bd-black:#0D111F;--bd-cream:#1C2440;--bd-red:#5A1A2A;--bd-green:#1A4A3A;--hl:#E5202E;--hlg:#1FCB62;--hls:#FFC72C}
+.bsvg{position:absolute;inset:0}
+.bsvg svg{display:block;width:100%;height:100%}
+.bdisc{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.bdisc.bull{align-items:flex-end;padding-bottom:7%}
+.bdisc.bull .target{font-size:clamp(40px,14vw,60px)!important}
+.bdisc .target{font-size:clamp(60px,22vw,96px);margin:0;font-weight:900;font-style:italic;color:#fff;text-shadow:0 2px 14px #000,0 0 22px rgba(0,0,0,.9)}
+@media (min-width:768px){
+  .binner{padding:22px 28px 18px}
+  .banner h1{font-size:56px;max-width:70%}
+  .subtitle{font-size:42px}
+  .bwrap{width:410px}
+  .bdisc .target{font-size:124px}
+  .kp .b,.pads4 .b{font-size:56px}
+}
+@media (max-width:440px){.tab{font-size:15px;padding:8px 10px;letter-spacing:.03em}}
 `}
 };
 function applyTheme(k){
-  const t=THEMES[k]||THEMES.a;
+  const t=THEMES[k]||THEMES.d;
   let st=document.getElementById('themecss');if(!st){st=document.createElement('style');st.id='themecss';document.head.appendChild(st);}
   st.textContent=t.css;
   let lk=document.getElementById('themefont');if(!lk){lk=document.createElement('link');lk.id='themefont';lk.rel='stylesheet';document.head.appendChild(lk);}
   lk.href=t.font;document.documentElement.dataset.theme=k;
 }
-function getTheme(){try{const v=localStorage.getItem('darts_theme');return THEMES[v]?v:'a';}catch(e){return 'a';}}
+function getTheme(){try{const v=localStorage.getItem('darts_theme');return THEMES[v]?v:'d';}catch(e){return 'd';}}
 applyTheme(getTheme());
 </script>
 </head>
@@ -678,7 +743,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 5. 11. 2026, 20:30';
+const BUILD='verze 10. 11. 2026, 12:00';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",

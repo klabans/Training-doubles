@@ -20,7 +20,7 @@ Stačí otevřít `index.html` v prohlížeči (nebo jakýkoli statický server)
 ## Struktura `index.html`
 
 1. `<style>` – základní CSS, breakpointy 768 / 900 / 1000 px.
-2. První `<script>` v `<head>` – `THEMES` (a = Neon Oche, výchozí; b = Terč; c = Čistý sport). Každé téma je CSS řetězec + Google Font, aplikuje `applyTheme()`; volba v `localStorage.darts_theme`.
+2. První `<script>` v `<head>` – `THEMES` (a = Neon Oche; b = Terč; c = Čistý sport; d = TV turnaj, výchozí – jen nálada TV grafiky, žádná loga/kopie). Každé téma je CSS řetězec + Google Font, aplikuje `applyTheme()`; volba v `localStorage.darts_theme`.
 3. Hlavní `<script>` (sekce oddělené komentáři `/* ---------- … ---------- */`):
    - **konstanty**: `PHASEDEF` (hry s id `w a b r p z c t k f`), `PRESETS`, `LADDERS`, `BOB`, `ROUTE_TAB` + `route()`/`favRoute()` (cesty na zavření).
    - **terč**: `makeBoard()` (SVG), `boardize()` nahradí `<div class="target">D16</div>` terčem se zvýrazněním.
