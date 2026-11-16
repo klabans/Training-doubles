@@ -669,10 +669,12 @@ function replay(darts){
   return R;
 }
 function summarize(darts){
-  const by={};let n=0,h=0,mn=0;const dir={u:0,d:0,l:0,r:0},miss=[];
+  const by={};let n=0,h=0,mn=0;const dir={u:0,d:0,l:0,r:0},miss=[],pts=[];
   for(const d of darts){
-    const a=d.split(':'),p=a[0],t=a[1],x=a[2]; if(p==='k'||p==='kn'||p==='rd'||p==='c'||p==='z'||p==='ax'||((p==='o'||p==='ot')&&t==='0')) continue; n++; if(x==='1')h++;
+    const a=d.split(':'),p=a[0],t=a[1],x=a[2];
+    if(p==='k'||p==='kn'||p==='c'||p==='z')ptsDec(a[p==='c'?4:p==='z'?5:3]).forEach(q=>{pts.push(q);if(!q.h){mn++;const o=missOff(q.t,'@'+q.x+','+q.y);if(o){dir[o.d]++;miss.push(o);}}}); if(p==='k'||p==='kn'||p==='rd'||p==='c'||p==='z'||p==='ax'||((p==='o'||p==='ot')&&t==='0')) continue; n++; if(x==='1')h++;
     if(x==='0'){mn++;const o=missOff(+t,a[3]);if(o){dir[o.d]++;miss.push(o);}}
+    if(a[3]&&a[3][0]==='@'){const v=a[3].slice(1).split(',').map(Number);if(v.length===2&&!v.some(isNaN))pts.push({t:+t,h:x==='1',x:v[0],y:v[1]});}
     const o=by[t]||(by[t]={n:0,h:0}); o.n++; if(x==='1')o.h++;
   }
   const R=replay(darts);
@@ -682,7 +684,7 @@ function summarize(darts){
   const fdn=[...R.a.hd,...R.b.hd,...R.r.setHd.flat()];
   const cOk=R.c.filter(x=>x.s),dds=R.c.map(x=>x.dd).filter(v=>v!=null),zdd=R.z.map(x=>x.dd).filter(v=>v!=null);
   let tn=0,th=0;R.t.tests.forEach(q=>{tn+=q.n;th+=q.h;});
-  return {n,h,by,mn,dir,miss,tn,th,fd:{n:fdn.length+R.p.n,h:fdn.filter(x=>x.d===1).length+R.p.h},pn:R.p.n,ph:R.p.h,
+  return {n,h,by,mn,dir,miss,pts,ad:pts.some(q=>q.h),tn,th,fd:{n:fdn.length+R.p.n,h:fdn.filter(x=>x.d===1).length+R.p.h},pn:R.p.n,ph:R.p.h,
     zTries:R.z.length,zSucc:R.z.filter(x=>x.s).length,zDarts:R.z.filter(x=>x.s).map(x=>x.d),zDD:zdd,cDD:dds,cMax:cOk.length?Math.max(...cOk.map(x=>x.lvl)):null,
     runsA:R.a.runs,runsB:R.b.runs,bobGames:G.length,fbRunsA:R.a.fbRuns,hdA:R.a.hd,hdB:R.b.hd,randDetail:R.r.setHd,
     bobReached:Gs.length?Math.max(...Gs.map(g=>g.reached)):null,
@@ -743,7 +745,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 16. 11. 2026, 21:00';
+const BUILD='verze 16. 11. 2026, 23:00';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -975,6 +977,10 @@ function tagLast(v){
 // websocket posílá {type:'state',data:{status,event,throws:[{segmentName,segmentNumber,multiplier,bed,coordsX,coordsY}]}};
 // throws narůstá s každou šipkou a po vytažení šipek je prázdné. Souřadnice: 1 = vnější drát doublu, y nahoru.
 const AD={ws:null,st:'off',n:-1,vis:[],tm:null};
+// poloha šipky → jednotky SVG terče (1 = vnější drát doublu = 100), y dolů; seznam šipek „<double><h|m>@x,y;…“ (Bob's 27, 121, Zavírání)
+function adPos(th){return th.coordsX==null||th.coordsY==null?'':'@'+(+th.coordsX*100).toFixed(1)+','+(-th.coordsY*100).toFixed(1);}
+function ptsEnc(L){return L.filter(d=>d.p).map(d=>d.t+(d.h?'h':'m')+d.p).join(';');}
+function ptsDec(q){return String(q||'').split(';').map(z=>{const m=/^(\d+)([hm])@(-?[\d.]+),(-?[\d.]+)$/.exec(z);return m?{t:+m[1],h:m[2]==='h',x:+m[3],y:+m[4]}:null;}).filter(Boolean);}
 function adUrl(){return cfg.adUrl||'ws://localhost:3180/api/events';}
 function adLbl(){return {off:'vypnuto',con:'připojuji…',on:'připojeno',err:'nepřipojeno'}[AD.st];}
 function adSet(v){AD.st=v;const e=document.getElementById('adSt');if(e)e.textContent=adLbl();}
@@ -991,19 +997,24 @@ function adStop(){clearTimeout(AD.tm);const w=AD.ws;AD.ws=null;if(w)try{w.close(
 function adState(d){
   const L=d.throws.length;
   if(AD.n<0){AD.n=L;return;} // šipky, které už v terči byly při připojení, se nepočítají
-  if(L<AD.n){adBob();adCxTakeout();AD.n=0;AD.vis=[];}
+  if(L<AD.n){adPad(AD.n);adBob();adCxTakeout();AD.n=0;AD.vis=[];}
   if(L>AD.n){const nw=d.throws.slice(AD.n);AD.n=L;nw.forEach(adThrow);}
+}
+function adPad(n){
+  if(!run||run.paused||!(n>0&&n<3))return;const id=run.plan[run.phase].id;if(!['a','b','r','f','t','o'].includes(id))return;
+  for(let i=n;i<3;i++)adThrow({segmentName:'nezachyceno',segmentNumber:0,multiplier:0},true);
+  flash('🎯 Kamera zachytila jen '+n+' z 3 šipek – chybějící '+(3-n===1?'šipka je zapsaná':'šipky jsou zapsané')+' jako mimo (oprav přes „Zpět“).');
 }
 function adBob(){
   const v=AD.vis;AD.vis=[];if(!v.length||!run||run.paused||run.plan[run.phase].id!=='k')return;
-  const c=replay(run.darts).k.cur;if(c.over||c.done)return;commit(kcode()+':'+BOB[c.i]+':'+v.filter(Boolean).length);
+  const c=replay(run.darts).k.cur;if(c.over||c.done)return;const L=ptsEnc(v);commit(kcode()+':'+BOB[c.i]+':'+v.filter(d=>d.h).length+(L?':'+L:''));
 }
-function adThrow(th){
+function adThrow(th,quiet){
   if(!run||run.paused)return;
   const id=run.plan[run.phase].id,R=replay(run.darts),sn=+th.segmentNumber,mu=+th.multiplier,nm=String(th.segmentName||'?');
   const dbl=t=>mu===2&&sn===t,sgl=t=>mu>0&&sn===t;
-  const tag=th.coordsX==null||th.coordsY==null?'':':@'+(th.coordsX*100).toFixed(1)+','+(-th.coordsY*100).toFixed(1);
-  const say=(t,h)=>flash('🎯 '+nm+' → '+t+(h?' ✓ zásah':' ✗ mimo'));
+  const ps=adPos(th),tag=ps?':'+ps:'';
+  const say=(t,h)=>{if(!quiet)flash('🎯 '+nm+' → '+t+(h?' ✓ zásah':' ✗ mimo'));};
   let ph,t,h;
   if(id==='a'||id==='b'){
     const r=R[id],m=ladderMode(id,r);
@@ -1011,41 +1022,43 @@ function adThrow(th){
     if(m==='dbl'){ph='ay';t=r.fbT===1?2:1;}else{ph=id;t=LADDERS[id][r.idx];}
   }
   else if(id==='f'){ph='f'+run.fc;t=LADDERS[run.fc][R[ph].lvl];}
-  else if(id==='r'){const r=R.r;if(!r.active){flash('🎯 '+nm+' – nejdřív vylosuj pětici.');return;}ph='r';t=r.set[r.idx];}
+  else if(id==='r'){const r=R.r;if(!r.active){drawSet();return adThrow(th,quiet);}ph='r';t=r.set[r.idx];}
   else if(id==='p'){ph='p';t=run.pcur;run.pcur=drawP(run.pcur);}
   else if(id==='t'){
-    const c=R.t.cur;if(c&&c.n>=c.N&&!run.tfresh){flash('🎯 '+nm+' – test je hotový, klepni na „Další test“.');return;}
+    const c=R.t.cur;if(c&&c.n>=c.N&&!run.tfresh){run.tfresh=true;run.tsel=null;run.tcol=null;if(run.tauto)run.tt=randDbl(run.tt);return adThrow(th,quiet);}
     run.tfresh=false;t=tTarget(c);const n=c?c.n:0;if(n%3===0||!run.tsel)run.tsel=[];const k=n%3;h=dbl(t);run.tsel[k]=h;run.tcol=k;ph=tcode();
   }
-  else if(id==='o'){const o=R.o.cur;if(o.done)return;ph=ocode();t=BOB[o.i];}
-  else if(id==='k'){const c=R.k.cur;if(c.over||c.done)return;t=BOB[c.i];h=dbl(t);AD.vis.push(h);say(bl(t),h);if(AD.vis.length>=3)adBob();return;}
+  else if(id==='o'){const o=R.o.cur;if(o.done){commit(ocode()+':0:0');return adThrow(th,quiet);}ph=ocode();t=BOB[o.i];}
+  else if(id==='k'){const c=R.k.cur;if(c.over||c.done){commit(kcode()+':0:0');return adThrow(th,quiet);}t=BOB[c.i];h=dbl(t);AD.vis.push({t,h,p:ps});say(bl(t),h);if(AD.vis.length>=3)adBob();return;}
   else if(id==='w'&&run.wo){
-    const i=run.wi||0;if(i>=BOB.length)return;t=BOB[i];h=sgl(t);
+    if((run.wi||0)>=BOB.length){run.wi=0;run.wd=0;run.wv=0;run.wr=0;}const i=run.wi||0;t=BOB[i];h=sgl(t);
     run.wd=(run.wd||0)+1;if(h){run.wi=i+1;run.wv=0;}else{run.wv=(run.wv||0)+1;if(run.wn&&run.wv>=run.wn){run.wi=Math.max(0,i-1);run.wv=0;run.wr=(run.wr||0)+1;}}
     saveDraft();render();say(t===25?'Bull':String(t),h);return;
   }
   else if(id==='c'||id==='z'){adCheck(id,th,R);return;}
+  else if(id==='w')return;
   else{flash('🎯 '+nm+' – tuhle hru zadávej ručně.');return;}
   if(h===undefined)h=dbl(t);
-  commit(ph+':'+t+':'+(h?1:0)+(h?'':tag));say(bl(t),h);
+  commit(ph+':'+t+':'+(h?1:0)+tag);say(bl(t),h);
 }
 // 121 / Zavírání z čísla: počítání zbývajícího skóre z hodů Autodarts (double-out, přetažení = zpět na začátek kola)
 function adCx(id,R){
   const t=id==='c'?R.cLvl:run.zcur,k=id==='c'?R.c.length:R.z.length;if(k>=(id==='c'?run.cn:run.zn))return null;
-  let x=run.cx;if(!x||x.id!==id||x.k!==k||x.t!==t)x=run.cx={id,k,t,lim:id==='c'?(run.cd||9):9,rem:t,vs:t,n:0,dd:0,th:[],wait:false};
+  let x=run.cx;if(!x||x.id!==id||x.k!==k||x.t!==t)x=run.cx={id,k,t,lim:id==='c'?(run.cd||9):9,rem:t,vs:t,n:0,dd:0,th:[],dp:[],wait:false};
   return x;
 }
 function adCxEnd(x,ok){
   run.cx=null;run.cxLast=Object.assign({},x,{ok});
-  if(x.id==='c')commit('c:'+(ok?x.n:x.lim)+':'+(ok?1:0)+':'+x.dd);
-  else{const rec='z:'+x.t+':'+(ok?1:0)+':'+(ok?x.n:x.lim)+':'+x.dd;run.zcur=drawZ(run.zr,run.zcur);commit(rec);}
+  const L=ptsEnc(x.dp||[]),lt=L?':'+L:'';
+  if(x.id==='c')commit('c:'+(ok?x.n:x.lim)+':'+(ok?1:0)+':'+x.dd+lt);
+  else{const rec='z:'+x.t+':'+(ok?1:0)+':'+(ok?x.n:x.lim)+':'+x.dd+lt;run.zcur=drawZ(run.zr,run.zcur);commit(rec);}
   flash(ok?'🎯 '+x.t+' zavřeno na '+x.n+' šipek ✓':'🎯 '+x.t+' nezavřeno ✗ (zbylo '+x.rem+')');
 }
 function adCheck(id,th,R){
   const x=adCx(id,R),nm=String(th.segmentName||'?');if(!x){flash('🎯 '+nm+' – pokusy jsou hotové.');return;}
   if(x.wait){flash('🎯 '+nm+' – přetaženo, vytáhni šipky.');return;}
   const sn=+th.segmentNumber,mu=+th.multiplier,v=mu>0?sn*mu:0,r=x.rem-v;
-  if(x.rem===50||(x.rem<=40&&x.rem%2===0))x.dd++;
+  if(x.rem===50||(x.rem<=40&&x.rem%2===0)){x.dd++;(x.dp=x.dp||[]).push({t:x.rem===50?25:x.rem/2,h:r===0&&mu===2,p:adPos(th)});}
   x.n++;const d={nm:mu>0?nm:'mimo',v};x.th.push(d);
   if(r===0&&mu===2){x.rem=0;adCxEnd(x,true);return;}
   if(r<2){d.bust=true;x.rem=x.vs;const vn=Math.ceil(x.n/3)*3;x.wait=x.n<vn;x.n=vn;flash('🎯 '+nm+' – přetaženo, zbývá zase '+x.rem+'.');}
@@ -1522,6 +1535,26 @@ function renderStats(){
       const sc=P.length?`<svg class="mscat" viewBox="-40 -40 80 80" role="img" aria-label="Rozptyl minutí kolem cíle"><rect x="-40" y="-40" width="80" height="80" rx="6" style="fill:var(--card);stroke:var(--line)"/><circle r="12" style="fill:none;stroke:var(--grid)"/><circle r="24" style="fill:none;stroke:var(--grid)"/><line x1="-40" y1="0" x2="40" y2="0" style="stroke:var(--line)"/><line x1="0" y1="-40" x2="0" y2="40" style="stroke:var(--line)"/><circle r="2.4" style="fill:none;stroke:var(--s1);stroke-width:1"/>${P.slice(-300).map(m=>`<circle cx="${C(m.dx)}" cy="${C(m.dy)}" r="1.5" style="fill:var(--s2);opacity:.55"/>`).join('')}<path d="M${C(mx)-3} ${C(my)}h6M${C(mx)} ${C(my)-3}v6" style="stroke:var(--tx);stroke-width:1.2"/><text x="0" y="-34" text-anchor="middle" style="font:600 4px system-ui,sans-serif;fill:var(--tx3)">výš</text><text x="0" y="37.5" text-anchor="middle" style="font:600 4px system-ui,sans-serif;fill:var(--tx3)">níž</text><text x="-37" y="1.5" style="font:600 4px system-ui,sans-serif;fill:var(--tx3)">vlevo</text><text x="37" y="1.5" text-anchor="end" style="font:600 4px system-ui,sans-serif;fill:var(--tx3)">vpravo</text></svg>
         <p class="muted" style="margin:4px 0 0">Každý bod = jedna minutá šipka vůči středu cíle (všechny doubly dohromady, tak jak to vidíš u čáry). Kruhy ≈ 2 a 4 cm, křížek = průměrná odchylka: ${cm(mx)} ${mx<0?'vlevo':'vpravo'}, ${cm(my)} ${my<0?'výš':'níž'}.</p>`:'';
       h+=`<h2>Kam míjím</h2><div class="card"><div class="bars wide">${DIRS.map(([k,l])=>`<div class="r"><b>${l}</b><div class="t"><div class="f" style="width:${D[k]/dn*100}%"></div></div><span>${fP(D[k]/dn*100)} · ${D[k]}</span></div>`).join('')}</div>${sc}<p class="muted" style="margin:6px 0 0">Zapsáno u ${dn} z ${mn} minutí${M.length>P.length?` (${M.length-P.length} starších záznamů „vně/dovnitř“ přepočteno přibližně)`:''}.${hint}</p></div>`;
+    }
+  }
+  { // rozptyl na double – poloha všech šipek z Autodarts (zásahy i minutí)
+    const Q=L.filter(x=>x.sum.ad).flatMap(x=>x.sum.pts||[]),cm=v=>fN(Math.abs(v)*0.17,1)+' cm';
+    const lc=Q.filter(q=>q.t!==25&&BOARD_ORDER.includes(q.t)).map(q=>{const T=tgtPt(q.t),A=BOARD_ORDER.indexOf(q.t)*18*Math.PI/180,dx=q.x-T[0],dy=q.y-T[1];return {t:q.t,h:q.h,r:dx*Math.sin(A)-dy*Math.cos(A),s:dx*Math.cos(A)+dy*Math.sin(A)};});
+    if(lc.length){
+      const sd=v=>{const m=avg(v);return Math.sqrt(avg(v.map(z=>(z-m)*(z-m))));},mr=avg(lc.map(q=>q.r)),ms=avg(lc.map(q=>q.s)),sr=sd(lc.map(q=>q.r)),ss=sd(lc.map(q=>q.s)),hr=lc.filter(q=>q.h).length;
+      let hint='';
+      if(lc.length>=20){
+        if(Math.abs(mr)>=1.2)hint=` Střed tvých šipek je o ${cm(mr)} ${mr>0?'blíž k okraji terče':'blíž k singlu'} než střed doublu${Math.abs(mr)>=2.35?' – leží už mimo double':''}; zkus mířit o kousek ${mr>0?'víc dovnitř':'víc ven k drátu'}.`;
+        else hint=' Střed skupiny sedí na doublu – zlepšení teď přinese hlavně menší rozptyl.';
+        hint+=sr>ss*1.3?' Rozptyl je větší ven/dovnitř než do stran – typicky síla a výška vypuštění (oblouk šipky).':ss>sr*1.3?' Rozptyl je větší do stran než ven/dovnitř – typicky míření a stabilita (šipka uhýbá z osy).':'';
+      }else hint=' Pro spolehlivý závěr je potřeba aspoň 20 šipek s polohou.';
+      const C=v=>Math.max(-19,Math.min(19,v)).toFixed(1),P=lc.slice(-400);
+      const sc=`<svg class="mscat" viewBox="-20 -20 40 40" role="img" aria-label="Rozptyl šipek kolem doublu (double otočený nahoru)"><rect x="-20" y="-20" width="40" height="40" rx="3" style="fill:var(--card);stroke:var(--line)"/><rect x="-20" y="-2.35" width="40" height="4.7" style="fill:var(--grid);opacity:.9"/><line x1="-15.3" y1="-20" x2="-15.3" y2="20" style="stroke:var(--line)"/><line x1="15.3" y1="-20" x2="15.3" y2="20" style="stroke:var(--line)"/>${P.map(q=>q.h?`<circle cx="${C(q.s)}" cy="${C(-q.r)}" r=".8" style="fill:var(--s1)"/>`:`<circle cx="${C(q.s)}" cy="${C(-q.r)}" r=".7" style="fill:none;stroke:var(--s2);stroke-width:.35"/>`).join('')}<path d="M${C(ms-1.6)} ${C(-mr)}H${C(ms+1.6)}M${C(ms)} ${C(-mr-1.6)}V${C(-mr+1.6)}" style="stroke:var(--tx);stroke-width:.45"/></svg>`;
+      const G={};lc.forEach(q=>(G[q.t]=G[q.t]||[]).push(q));
+      const rows=Object.keys(G).map(Number).filter(t=>G[t].length>=10).sort((a,b)=>G[b].length-G[a].length).map(t=>{const g=G[t],r=avg(g.map(q=>q.r)),s2=avg(g.map(q=>q.s)),rr=Math.sqrt(avg(g.map(q=>(q.r-r)*(q.r-r)+(q.s-s2)*(q.s-s2))));return `<tr><td><b>D${t}</b></td><td>${g.length}</td><td>${fP(pc(g.filter(q=>q.h).length,g.length))}</td><td>${cm(r)} ${r>0?'ven':'dovnitř'}</td><td>${cm(s2)} ${s2>0?'po směru':'proti směru'}</td><td>${cm(rr)}</td></tr>`;}).join('');
+      h+=`<h2>Rozptyl na double (Autodarts)</h2><div class="tiles"><div class="tile"><span class="lbl">Šipek s polohou</span><span class="v">${lc.length}</span></div><div class="tile"><span class="lbl">Zásah</span><span class="v">${fP(pc(hr,lc.length))}</span></div><div class="tile"><span class="lbl">Střed ven / dovnitř</span><span class="v">${cm(mr)} ${mr>0?'ven':'dovnitř'}</span></div><div class="tile"><span class="lbl">Rozptyl ven/dovnitř</span><span class="v">±${cm(sr)}</span></div><div class="tile"><span class="lbl">Rozptyl do stran</span><span class="v">±${cm(ss)}</span></div></div>
+      <div class="card">${sc}<p class="muted" style="margin:4px 0 0">Všechny šipky na double z kamery (● zásah, ○ minutí), každý double otočený tak, jako by byl nahoře: nahoru = ven z terče, dolů = do singlu, do stran = k sousedním číslům. Vodorovný pruh = double (0,8 cm), svislé čáry = hranice čísla, křížek = střed skupiny, výřez ±3,4 cm.${hint}</p></div>
+      ${rows?`<div class="card scroll"><b>Podle doublu (min. 10 šipek)</b><table><thead><tr><th>Double</th><th>Šipek</th><th>Zásah</th><th>Střed</th><th>Do strany</th><th>Rozptyl</th></tr></thead><tbody>${rows}</tbody></table><p class="muted" style="margin:6px 0 0">„Po směru“ = po směru hodinových ručiček. Rozptyl = průměrná vzdálenost šipky od středu skupiny.</p></div>`:''}`;
     }
   }
   { // řady: na kolikátou šipku
