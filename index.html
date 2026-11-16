@@ -60,6 +60,18 @@ select{font:inherit;padding:8px 10px;border-radius:8px;background:var(--card);co
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .tile{background:var(--card);border-radius:12px;padding:12px}
 .tile .v{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+/* velká tabule během hry – čitelná od odhodové čáry */
+.sb{display:grid;grid-template-columns:repeat(var(--n,3),1fr);gap:8px;margin:0 0 10px}
+.sb .tile{text-align:center;padding:8px 6px;min-width:0;container-type:inline-size}
+.sb .tile .lbl{font-size:13px;font-weight:700}
+.sb .tile .v{display:block;font-size:46px;font-size:clamp(30px,27cqi,84px);line-height:1.02;margin-top:4px;white-space:nowrap}
+.sb .tile small{display:block;font-size:14px;font-weight:800;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.sb .tile.ok{border-color:var(--s1)}.sb .tile.ok .v{color:var(--s1)}
+.sb .tile.ko{border-color:var(--s2)}.sb .tile.ko .v{color:var(--s2)}
+.sb .pop{animation:sbpop .45s ease-out}
+@keyframes sbpop{0%{transform:scale(1.15)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.sb .pop{animation:none}}
+@media (max-width:600px){.sb.n4{grid-template-columns:repeat(2,1fr)}}
 table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
 th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
@@ -745,7 +757,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 16. 11. 2026, 23:00';
+const BUILD='verze 17. 11. 2026, 10:00';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1032,7 +1044,7 @@ function adThrow(th,quiet){
   else if(id==='k'){const c=R.k.cur;if(c.over||c.done){commit(kcode()+':0:0');return adThrow(th,quiet);}t=BOB[c.i];h=dbl(t);AD.vis.push({t,h,p:ps});say(bl(t),h);if(AD.vis.length>=3)adBob();return;}
   else if(id==='w'&&run.wo){
     if((run.wi||0)>=BOB.length){run.wi=0;run.wd=0;run.wv=0;run.wr=0;}const i=run.wi||0;t=BOB[i];h=sgl(t);
-    run.wd=(run.wd||0)+1;if(h){run.wi=i+1;run.wv=0;}else{run.wv=(run.wv||0)+1;if(run.wn&&run.wv>=run.wn){run.wi=Math.max(0,i-1);run.wv=0;run.wr=(run.wr||0)+1;}}
+    run.wlast=h;run.wd=(run.wd||0)+1;if(h){run.wi=i+1;run.wv=0;}else{run.wv=(run.wv||0)+1;if(run.wn&&run.wv>=run.wn){run.wi=Math.max(0,i-1);run.wv=0;run.wr=(run.wr||0)+1;}}
     saveDraft();render();say(t===25?'Bull':String(t),h);return;
   }
   else if(id==='c'||id==='z'){adCheck(id,th,R);return;}
@@ -1366,7 +1378,34 @@ function renderTrainActive(){
     :`<div class="row spread" style="margin-top:8px">${undoBtn}<button class="b out ${pul}" id="nextBtn" data-act="next">Další fáze ▶</button></div>
     ${repBtn?`<div style="margin-top:10px">${repBtn.replace('class="b out"','class="b out" style="width:100%"')}</div>`:''}
     <div class="row" style="margin-top:14px"><button class="b" data-act="finish">Ukončit a uložit</button><button class="b ghost" data-act="abort">Zahodit</button></div>`;
-  return `<div class="tgrid"><div class="gt">${T}</div><div class="gc">${C}</div><div class="gp">${howBox(id)}${limitHtml()}${boardize(h)}</div><div class="gf">${F}</div></div>`;
+  return `<div class="tgrid"><div class="gt">${T}</div><div class="gc">${C}</div><div class="gp">${sbHtml(id,R)}${howBox(id)}${limitHtml()}${boardize(h)}</div><div class="gf">${F}</div></div>`;
+}
+/* ---------- velká tabule během hry ---------- */
+let sbSeen=-1;
+function lastRec(id){
+  const ok=c=>id==='t'?/^t\d*$/.test(c):({a:['a','ax','ay'],b:['b'],f:['fa','fb'],r:['r'],p:['p'],o:['o','ot'],k:['k','kn'],c:['c'],z:['z']}[id]||[]).includes(c);
+  for(let i=run.darts.length-1;i>=0;i--){const a=run.darts[i].split(':');if(ok(a[0])&&!((id==='o'||id==='k')&&a[1]==='0'))return {i,a};}
+  return null;
+}
+function sbHtml(id,R){
+  const L=lastRec(id),cells=[];
+  const res=(lbl,h,txt,sub)=>({lbl,v:txt,sub,cls:h==null?'':h?'ok':'ko'});
+  const lastDart=()=>!L?res('Poslední',null,'–',''):L.a[2]==='1'?res('Poslední',true,'✓','zásah'):res('Poslední',false,'✗','mimo');
+  if(id==='t'){const c=R.t.cur,N=run.tn||30,inp=c&&(c.n<c.N||!run.tfresh),n=inp&&c?c.n:0,hh=inp&&c?c.h:0;
+    cells.push(lastDart(),{lbl:'Zásahy',v:hh+'/'+n},{lbl:'Úspěšnost',v:n?fP(pc(hh,n)):'–'},{lbl:'Šipka',v:Math.min(n+1,N)+'/'+N});}
+  else if(id==='a'||id==='b'){const r=R[id],m=ladderMode(id,r),t=m==='setup'?'S'+fbSingle(r):m==='dbl'?'D'+(r.fbT===1?2:1):'D'+LADDERS[id][r.idx];
+    cells.push(lastDart(),{lbl:'Cíl',v:t},{lbl:'Šipka v kole',v:(r.n%3+1)+'/3'},{lbl:'Šipek v řadě',v:r.cur});}
+  else if(id==='f'){const L2=LADDERS[run.fc],r=R['f'+run.fc];cells.push(lastDart(),{lbl:'Cíl',v:'D'+L2[r.lvl]},{lbl:'Úroveň',v:r.lvl+'/'+L2.length},{lbl:'Šipka v kole',v:((r.vd||0)+1)+'/3'});}
+  else if(id==='r'){const r=R.r;cells.push(lastDart(),{lbl:'Cíl',v:r.active?'D'+r.set[r.idx]:'🎲'},{lbl:'Hotovo',v:(r.active?r.idx:0)+'/5'},{lbl:'Šipek v pětici',v:r.active?r.n:0});}
+  else if(id==='p'){const r=R.p;cells.push(lastDart(),{lbl:'Cíl',v:bl(run.pcur)},{lbl:'Zásahy',v:r.h+'/'+r.n},{lbl:'Úspěšnost',v:r.n?fP(pc(r.h,r.n)):'–'});}
+  else if(id==='k'){const c=R.k.cur,n=L?+L.a[2]:null;cells.push(L?res('Poslední kolo',n>0,n+'×',n>0?'zásah':'mimo'):res('Poslední kolo',null,'–',''),{lbl:'Cíl',v:c.over||c.done?'konec':bl(BOB[Math.min(c.i,BOB.length-1)])},{lbl:'Skóre',v:c.score});}
+  else if(id==='o'){const o=R.o.cur,inp=o.n>0&&!o.done,pro=inp?o.pro:run.omode==='3';cells.push(lastDart(),{lbl:'Pole '+Math.min(o.i+1,BOB.length)+'/'+BOB.length,v:o.done?'hotovo':bl(BOB[o.i])},pro?{lbl:'Šipka na pole',v:(o.vd+1)+'/3'}:{lbl:'Šipek ve hře',v:o.n});}
+  else if(id==='c'||id==='z'){const ac=id==='c'?R.c:R.z,N=id==='c'?run.cn:run.zn,t=id==='c'?R.cLvl:run.zcur,x=run.cx&&run.cx.id===id&&run.cx.k===ac.length&&run.cx.t===t?run.cx:null,lim=id==='c'?(run.cd||9):9;
+    cells.push(L?(L.a[2]==='1'?res('Poslední pokus',true,'✓',(id==='c'?L.a[1]:L.a[3])+' šipek'):res('Poslední pokus',false,'✗','nezavřeno')):res('Poslední pokus',null,'–',''),{lbl:cfg.ad?'Zbývá':'Zavři',v:ac.length>=N?'hotovo':x?x.rem:t},cfg.ad?{lbl:'Šipka',v:Math.min((x?x.n:0)+1,lim)+'/'+lim}:{lbl:'Pokus',v:Math.min(ac.length+1,N)+'/'+N});}
+  else if(id==='w'&&run.wo){const i=run.wi||0;cells.push(run.wlast==null?res('Poslední',null,'–',''):run.wlast?res('Poslední',true,'✓','zásah'):res('Poslední',false,'✗','mimo'),{lbl:'Číslo',v:i>=BOB.length?'hotovo':BOB[i]===25?'Bull':BOB[i]},{lbl:'Šipek',v:run.wd||0});}
+  if(!cells.length)return '';
+  const key=id==='w'?'w'+(run.wd||0):L?L.i+':'+run.darts.length:'-',pop=key!==sbSeen;sbSeen=key;
+  return `<div class="sb ${cells.length===4?'n4':''}" style="--n:${cells.length}">${cells.map((c,i)=>`<div class="tile ${c.cls||''}${i===0&&pop&&c.cls?' pop':''}"><span class="lbl">${c.lbl}</span><span class="v">${c.v}</span>${c.sub!=null?`<small>${c.sub||'&nbsp;'}</small>`:''}</div>`).join('')}</div>`;
 }
 function canRepeat(id){if(id==='w') return false;if(['a','b','r','f','p'].includes(id)) return !!(run.lim||{})[id];return true;}
 function repeatPhase(){
@@ -1752,8 +1791,8 @@ document.addEventListener('click',async e=>{
     case 'next':if(run.phase<run.plan.length-1){run.phase++;run.phaseStart=run.elapsed;saveDraft();}break;
     case 'bob':addBob(+t.dataset.n);return;
     case 'wo':cfg.wo=!cfg.wo;lsSet('darts_cfg',cfg);break;
-    case 'whit':run.wi=(run.wi||0)+1;run.wd=(run.wd||0)+1;run.wv=0;saveDraft();break;
-    case 'wmiss':run.wd=(run.wd||0)+1;run.wv=(run.wv||0)+1;if(run.wn&&run.wv>=run.wn){run.wi=Math.max(0,(run.wi||0)-1);run.wv=0;run.wr=(run.wr||0)+1;}saveDraft();break;
+    case 'whit':run.wlast=true;run.wi=(run.wi||0)+1;run.wd=(run.wd||0)+1;run.wv=0;saveDraft();break;
+    case 'wmiss':run.wlast=false;run.wd=(run.wd||0)+1;run.wv=(run.wv||0)+1;if(run.wn&&run.wv>=run.wn){run.wi=Math.max(0,(run.wi||0)-1);run.wv=0;run.wr=(run.wr||0)+1;}saveDraft();break;
     case 'wnew':run.wi=0;run.wd=0;run.wv=0;run.wr=0;saveDraft();break;
     case 'ohit':addO(true);return;
     case 'omiss':addO(false);return;

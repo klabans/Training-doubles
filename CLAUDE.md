@@ -29,6 +29,7 @@ Stačí otevřít `index.html` v prohlížeči (nebo jakýkoli statický server)
    - **účet**: `FIREBASE_CONFIG`, `makeFirebase()`, `Cloud`, přihlašovací formulář; bez přihlášení je aplikace „gated“.
    - **stav**: `cfg` (localStorage `darts_cfg`), `run` (běžící trénink, draft v `darts_draft_v1`).
    - **pohledy**: `renderTrainIdle`, `renderTrainActive`, `renderStats`, `renderHist`, `renderStyle`; 14denní plán `P14`.
+   - **velká tabule**: `sbHtml(id,R)` nad terčem běžící hry – poslední hod ✓/✗ (`lastRec`) + 2–3 klíčové hodnoty dané hry, čitelné od odhodové čáry (CSS `.sb`, velikost přes container query `cqi`).
    - **render + události**: `render()` přepíše celý `#main` přes `innerHTML`; jeden delegovaný `click` handler se `switch` podle `data-act`, jeden `change` handler podle `data-*` atributů.
 
 ## Datový model (důležité)
