@@ -62,6 +62,12 @@ Každý záznam v `darts` je řetězec `fáze:double:zásah[:extra…]`:
 - Barvy jen přes CSS proměnné (`--s1`, `--s2`, `--tx…`, `--bd-*`, `--hl*`), aby fungovala všechna 3 témata – změny vzhledu ověř ve všech tématech a na mobilu i desktopu.
 - Po každé úpravě aktualizuj `BUILD` (`'verze D. M. RRRR, HH:MM'`) – zobrazuje se v patičce a slouží k ověření, že se nasadila nová verze.
 
+## Autodarts
+
+- Přepínač „🎯 Autodarts“ v hlavičce běžícího tréninku (`cfg.ad`, URL `cfg.adUrl`, výchozí `ws://localhost:3180/api/events` = Board Manager na stejném PC; z https stránky funguje jen localhost).
+- Websocket posílá `{type:'state',data:{status,event,throws:[…]}}`, `throws` narůstá po šipce a po vytažení je prázdné; `adState()` zpracuje jen nově přibylé šipky (počítá délku pole, duplicitní zprávy ignoruje).
+- `adThrow()` mapuje šipku na aktuální hru (`a b f r p t o k`, rozcvička ATC); zásah doublu = `multiplier===2 && segmentNumber===cíl`. Minutá šipka dostane polohu `:@x,y` (`coordsX*100`, `-coordsY*100`; 1 = vnější drát doublu, y nahoru). 121 a Zavírání se zadávají ručně.
+
 ## Známé zvláštnosti
 
 - Odpočet fází je vypnutý (`run.timed=false` v `startRun`); `updTimers`, `pause`, minuty v `PHASEDEF` jsou pozůstatek. Skutečný čas měří samostatný interval do `run.act`.

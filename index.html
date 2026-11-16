@@ -743,7 +743,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 10. 11. 2026, 12:00';
+const BUILD='verze 16. 11. 2026, 19:00';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -971,6 +971,63 @@ function tagLast(v){
   else{if(a.length===3&&a[2]==='0')a.push(v);else return;}
   run.darts[i]=a.join(':');saveDraft();
 }
+/* ---------- Autodarts (kamera přes lokální Board Manager) ---------- */
+// websocket posílá {type:'state',data:{status,event,throws:[{segmentName,segmentNumber,multiplier,bed,coordsX,coordsY}]}};
+// throws narůstá s každou šipkou a po vytažení šipek je prázdné. Souřadnice: 1 = vnější drát doublu, y nahoru.
+const AD={ws:null,st:'off',n:-1,vis:[],tm:null};
+function adUrl(){return cfg.adUrl||'ws://localhost:3180/api/events';}
+function adLbl(){return {off:'vypnuto',con:'připojuji…',on:'připojeno',err:'nepřipojeno'}[AD.st];}
+function adSet(v){AD.st=v;const e=document.getElementById('adSt');if(e)e.textContent=adLbl();}
+function adConnect(){
+  clearTimeout(AD.tm);if(!cfg.ad){adStop();return;}
+  if(AD.ws&&AD.ws.readyState<2)return;
+  adSet('con');let w;try{w=new WebSocket(adUrl());}catch(e){adSet('err');AD.tm=setTimeout(adConnect,5000);return;}
+  AD.ws=w;AD.n=-1;AD.vis=[];
+  w.onopen=()=>{if(AD.ws===w)adSet('on');};
+  w.onclose=()=>{if(AD.ws!==w)return;AD.ws=null;if(cfg.ad){adSet('err');AD.tm=setTimeout(adConnect,3000);}else adSet('off');};
+  w.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch(x){return;}const d=m&&m.type==='state'?m.data:m;if(d&&Array.isArray(d.throws))adState(d);};
+}
+function adStop(){clearTimeout(AD.tm);const w=AD.ws;AD.ws=null;if(w)try{w.close();}catch(e){}adSet('off');}
+function adState(d){
+  const L=d.throws.length;
+  if(AD.n<0){AD.n=L;return;} // šipky, které už v terči byly při připojení, se nepočítají
+  if(L<AD.n){adBob();AD.n=0;AD.vis=[];}
+  if(L>AD.n){const nw=d.throws.slice(AD.n);AD.n=L;nw.forEach(adThrow);}
+}
+function adBob(){
+  const v=AD.vis;AD.vis=[];if(!v.length||!run||run.paused||run.plan[run.phase].id!=='k')return;
+  const c=replay(run.darts).k.cur;if(c.over||c.done)return;commit(kcode()+':'+BOB[c.i]+':'+v.filter(Boolean).length);
+}
+function adThrow(th){
+  if(!run||run.paused)return;
+  const id=run.plan[run.phase].id,R=replay(run.darts),sn=+th.segmentNumber,mu=+th.multiplier,nm=String(th.segmentName||'?');
+  const dbl=t=>mu===2&&sn===t,sgl=t=>mu>0&&sn===t;
+  const tag=th.coordsX==null||th.coordsY==null?'':':@'+(th.coordsX*100).toFixed(1)+','+(-th.coordsY*100).toFixed(1);
+  const say=(t,h)=>flash('🎯 '+nm+' → '+t+(h?' ✓ zásah':' ✗ mimo'));
+  let ph,t,h;
+  if(id==='a'||id==='b'){
+    const r=R[id],m=ladderMode(id,r);
+    if(m==='setup'){t=fbSingle(r);h=mu===1&&sn===t;commit('ax:'+t+':'+(h?1:0));say('S'+t,h);return;}
+    if(m==='dbl'){ph='ay';t=r.fbT===1?2:1;}else{ph=id;t=LADDERS[id][r.idx];}
+  }
+  else if(id==='f'){ph='f'+run.fc;t=LADDERS[run.fc][R[ph].lvl];}
+  else if(id==='r'){const r=R.r;if(!r.active){flash('🎯 '+nm+' – nejdřív vylosuj pětici.');return;}ph='r';t=r.set[r.idx];}
+  else if(id==='p'){ph='p';t=run.pcur;run.pcur=drawP(run.pcur);}
+  else if(id==='t'){
+    const c=R.t.cur;if(c&&c.n>=c.N&&!run.tfresh){flash('🎯 '+nm+' – test je hotový, klepni na „Další test“.');return;}
+    run.tfresh=false;t=tTarget(c);const n=c?c.n:0;if(n%3===0||!run.tsel)run.tsel=[];const k=n%3;h=dbl(t);run.tsel[k]=h;run.tcol=k;ph=tcode();
+  }
+  else if(id==='o'){const o=R.o.cur;if(o.done)return;ph=ocode();t=BOB[o.i];}
+  else if(id==='k'){const c=R.k.cur;if(c.over||c.done)return;t=BOB[c.i];h=dbl(t);AD.vis.push(h);say(bl(t),h);if(AD.vis.length>=3)adBob();return;}
+  else if(id==='w'&&run.wo){
+    const i=run.wi||0;if(i>=BOB.length)return;t=BOB[i];h=sgl(t);
+    run.wd=(run.wd||0)+1;if(h){run.wi=i+1;run.wv=0;}else{run.wv=(run.wv||0)+1;if(run.wn&&run.wv>=run.wn){run.wi=Math.max(0,i-1);run.wv=0;run.wr=(run.wr||0)+1;}}
+    saveDraft();render();say(t===25?'Bull':String(t),h);return;
+  }
+  else{flash('🎯 '+nm+' – tuhle hru zadávej ručně.');return;}
+  if(h===undefined)h=dbl(t);
+  commit(ph+':'+t+':'+(h?1:0)+(h?'':tag));say(bl(t),h);
+}
 function addC(d,ok){if(replay(run.darts).c.length>=run.cn)return;commit('c:'+d+':'+(ok?1:0));}
 function randDbl(prev){let x;do{x=1+Math.floor(Math.random()*20);}while(x===prev);return x;}
 function tTarget(c){return c&&c.n>0&&c.n<c.N?c.t:run.tt;}
@@ -1122,7 +1179,7 @@ function pauseCard(){
 function renderTrainActive(){
   const ph=run.plan[run.phase],id=ph.id,R=replay(run.darts),LASTI=run.plan.length-1;
   if(run.paused) return pauseCard();
-  const T=`<div class="row spread" style="margin:0 0 6px"><span class="muted">⏱ Čas tréninku: <b id="tAct">${fClock(run.act)}</b>${run.p14day?` · 14denní plán, den <b>${run.p14day}</b> z 14`:''}</span><button class="b ghost sm" data-act="hold">⏸ Pauza</button></div>`;
+  const T=`<div class="row spread" style="margin:0 0 6px"><span class="muted">⏱ Čas tréninku: <b id="tAct">${fClock(run.act)}</b>${run.p14day?` · 14denní plán, den <b>${run.p14day}</b> z 14`:''}</span><span class="row"><button class="chip ${cfg.ad?'cur':''}" data-act="adtog" title="Zápis šipek z kamery Autodarts (Board Manager na tomto počítači)">🎯 Autodarts: <span id="adSt">${cfg.ad?adLbl():'vypnuto'}</span></button><button class="b ghost sm" data-act="hold">⏸ Pauza</button></span></div>`;
   const C=`<div class="chips plan">${run.plan.map((p,i)=>`<button class="chip ${i===run.phase?'cur':''}" data-act="goto" data-i="${i}">${p.name}</button>`).join('')}</div>`;
   let h='';
   if(id==='w'){
@@ -1608,6 +1665,7 @@ document.addEventListener('click',async e=>{
     case 'trand':run.tt=randDbl(run.tt);saveDraft();break;
     case 'tauto':run.tauto=!run.tauto;if(run.tauto){const c=replay(run.darts).t.cur;if(!(c&&c.n>0&&c.n<c.N))run.tt=randDbl(run.tt);}saveDraft();break;
     case 'resume':startRun(draftPending);run.running=false;run.paused=false;run.lastIn=Date.now();saveDraft();break;
+    case 'adtog':cfg.ad=!cfg.ad;lsSet('darts_cfg',cfg);if(cfg.ad)adConnect();else adStop();break;
     case 'hold':run.paused=true;run.pausedAt=Date.now();saveDraft();break;
     case 'unhold':run.paused=false;run.pausedAt=0;run.lastIn=Date.now();saveDraft();break;
     case 'discard-draft':lsDel(LS_D);draftPending=null;break;
@@ -1671,6 +1729,7 @@ document.getElementById('praise').addEventListener('click',()=>$('#praise').clas
   render();
   await Cloud.init();
 })();
+if(cfg.ad)adConnect();
 </script>
 </body>
 </html>
