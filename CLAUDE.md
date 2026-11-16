@@ -28,7 +28,7 @@ Stačí otevřít `index.html` v prohlížeči (nebo jakýkoli statický server)
    - **úložiště**: `Store` (localStorage / `claude.use('db')` / Firebase).
    - **účet**: `FIREBASE_CONFIG`, `makeFirebase()`, `Cloud`, přihlašovací formulář; bez přihlášení je aplikace „gated“.
    - **stav**: `cfg` (localStorage `darts_cfg`), `run` (běžící trénink, draft v `darts_draft_v1`).
-   - **pohledy**: `renderTrainIdle`, `renderTrainActive`, `renderStats`, `renderHist`, `renderStyle`; 14denní plán `P14`.
+   - **pohledy**: `renderTrainIdle`, `renderTrainActive`, `renderParty`, `renderStats`, `renderHist`, `renderStyle`; 14denní plán `P14`.
    - **velká tabule**: `sbHtml(id,R)` nad terčem běžící hry – poslední hod ✓/✗ (`lastRec`) + 2–3 klíčové hodnoty dané hry, čitelné od odhodové čáry (CSS `.sb`, velikost přes container query `cqi`).
    - **render + události**: `render()` přepíše celý `#main` přes `innerHTML`; jeden delegovaný `click` handler se `switch` podle `data-act`, jeden `change` handler podle `data-*` atributů.
 
@@ -68,6 +68,13 @@ Každý záznam v `darts` je řetězec `fáze:double:zásah[:extra…]`:
 - Přepínač „🎯 Autodarts“ v hlavičce běžícího tréninku (`cfg.ad`, URL `cfg.adUrl`, výchozí `ws://localhost:3180/api/events` = Board Manager na stejném PC; z https stránky funguje jen localhost).
 - Websocket posílá `{type:'state',data:{status,event,throws:[…]}}`, `throws` narůstá po šipce a po vytažení je prázdné; `adState()` zpracuje jen nově přibylé šipky (počítá délku pole, duplicitní zprávy ignoruje).
 - `adThrow()` mapuje šipku na aktuální hru (`a b f r p t o k`, rozcvička ATC); zásah doublu = `multiplier===2 && segmentNumber===cíl`. Minutá šipka dostane polohu `:@x,y` (`coordsX*100`, `-coordsY*100`; 1 = vnější drát doublu, y nahoru). S Autodarts dostane polohu `:@x,y` **každá** šipka (i zásah); Bob's 27, 121 a Zavírání ukládají šipky na double jako seznam na konci záznamu: `k:<double>:<zásahů>:<list>`, `c:<šipek>:<ok>:<na double>:<list>`, `z:<číslo>:<ok>:<šipek>:<na double>:<list>`, kde list = `<double><h|m>@x,y;…` (`ptsEnc`/`ptsDec`). `summarize()` vrací `pts` (všechny šipky s polohou) a `ad` (trénink s kamerou) → sekce „Rozptyl na double“ ve Statistikách (radiálně ven/dovnitř a do stran). Automatika: losování pětice, nová hra Bob's 27 / ATC, další test, kolo s méně než 3 zachycenými šipkami se při vytažení doplní jako mimo (`adPad`). Šipky posledního kola z kamery drží `AD.show` (do první šipky dalšího kola, i po vytažení): `adMarks()` je kreslí jako značky 1–3 přes terč (`.admk`, u 121/Zavírání malý terč v panelu) a `sbHtml` je vypíše nad tabulí i s tím, jak se zapsaly. Ťuknutím na šipku `adFix()` přepne zásah ↔ mimo: u `p`, `t`, `k` přímo v záznamu, u `a b f r o` zahodí zápisy od té šipky a znovu je projde `adThrow` (vynucený výsledek `th.__h`), takže se další šipky kola přepočítají na nový cíl. Každá položka drží index a text svého zápisu (`d`, `rec`); po ručním zápisu nebo „Zpět“ se oprava odmítne. U 121 a Zavírání `adCheck()` počítá zbývající skóre (double-out, přetažení = zpět na začátek kola a zbytek kola propadá) v `run.cx` a po zavření / vyčerpání šipek sám zapíše `c:…:<ok>:<na double>` / `z:…`; `cxHtml()` ukazuje zbývá, hody po kolech a poslední pokus.
+
+## Párty hry (záložka „Párty“)
+
+- Hry pro 1–8 hráčů u jednoho terče, oddělené od tréninku: vlastní úložiště jen v localStorage (`darts_party_cfg` = hráči/hra/volby `pcfg`, `darts_pdraft_v1` = běžící hra `PGR`, `darts_party_v1` = odehrané hry), do Firestore ani do statistik doublů nejdou.
+- Hra = `{id:'g'+ts, ts, game, opt, pl:[jména], darts:[…], end}`. Šipka = `S20 | D20 | T20 | SB | DB | M` (mimo) `| -` (nehozená – doplnění tahu přes „Konec tahu“ nebo vytažení po < 3 šipkách z kamery), volitelně `@x,y` (poloha z Autodarts) a `*` (ručně opraveno). Tah = vždy 3 záznamy (kromě tahu, kterým hra skončí).
+- Katalog `PG` (`ki cr sh hi ac go bb cu hh fv dk tt bk cd`); hratelné mají `ok:1` a háčky `init/dart/turn/rounds/rank/cells/tile/resH/res`. Zatím jen Count Up (`cu`). Stav vždy z `pgReplay(G)` (`st.p` hráč na tahu, `st.rd` kolo, `st.T` tahy, `st.t` rozehraný tah, `st.out` vyřazení, `st.over`, `st.rank`), proto oprava kterékoli šipky (`pedit` + `pgSet`) jen přepíše záznam a vše se přepočítá; šipky za koncem hry se ignorují (oprava může hru znovu otevřít).
+- Klávesnice Single/Double/Triple (`pmul`, po šipce zpět na Single) + 1–20, 25/Bull, Mimo; „Zpět“ (`pgUndo`) vrací i doplněné `-` najednou. Autodarts: `adState` při `pgOn()` (záložka Párty + běžící hra) posílá šipky do `pgAd`, vytažení do `pgTakeout`.
 
 ## Známé zvláštnosti
 
