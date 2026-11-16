@@ -66,7 +66,7 @@ Každý záznam v `darts` je řetězec `fáze:double:zásah[:extra…]`:
 
 - Přepínač „🎯 Autodarts“ v hlavičce běžícího tréninku (`cfg.ad`, URL `cfg.adUrl`, výchozí `ws://localhost:3180/api/events` = Board Manager na stejném PC; z https stránky funguje jen localhost).
 - Websocket posílá `{type:'state',data:{status,event,throws:[…]}}`, `throws` narůstá po šipce a po vytažení je prázdné; `adState()` zpracuje jen nově přibylé šipky (počítá délku pole, duplicitní zprávy ignoruje).
-- `adThrow()` mapuje šipku na aktuální hru (`a b f r p t o k`, rozcvička ATC); zásah doublu = `multiplier===2 && segmentNumber===cíl`. Minutá šipka dostane polohu `:@x,y` (`coordsX*100`, `-coordsY*100`; 1 = vnější drát doublu, y nahoru). 121 a Zavírání se zadávají ručně.
+- `adThrow()` mapuje šipku na aktuální hru (`a b f r p t o k`, rozcvička ATC); zásah doublu = `multiplier===2 && segmentNumber===cíl`. Minutá šipka dostane polohu `:@x,y` (`coordsX*100`, `-coordsY*100`; 1 = vnější drát doublu, y nahoru). U 121 a Zavírání `adCheck()` počítá zbývající skóre (double-out, přetažení = zpět na začátek kola a zbytek kola propadá) v `run.cx` a po zavření / vyčerpání šipek sám zapíše `c:…:<ok>:<na double>` / `z:…`; `cxHtml()` ukazuje zbývá, hody po kolech a poslední pokus.
 
 ## Známé zvláštnosti
 
