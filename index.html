@@ -196,6 +196,7 @@ button.dt{cursor:pointer}
 .dt.nx{border-style:dashed;color:var(--tx3)}.dt.now{border-color:var(--s1)}
 .dt.ed{border-color:var(--s2);box-shadow:0 0 0 3px var(--s2)}
 .dt.tot{border-color:transparent;background:transparent}.dt.tot b{color:var(--s1)}
+.pgdate{font:inherit;font-size:15px;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--tx);min-height:38px}
 .pgd.pgd3{grid-template-columns:repeat(3,1fr)}
 .pged{border:2px solid var(--s2);border-radius:12px;padding:10px;margin:0 0 10px;background:var(--card)}
 .pgprev{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
@@ -809,7 +810,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 16. 11. 2026, 22:30';
+const BUILD='verze 16. 11. 2026, 23:00';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1349,7 +1350,47 @@ function pgSetupHtml(){
   if(H.length)h+=`<div class="card scroll"><b>Odehrané hry</b><table><thead><tr><th>Datum</th><th>Hra</th><th style="text-align:left">Pořadí</th><th></th></tr></thead><tbody>${H.slice().reverse().slice(0,30).map(x=>{const rk=pgReplay(Object.assign({},x,{end:1})).rank;return `<tr><td>${fDL(x.ts)}</td><td>${PG[x.game].n}</td><td style="text-align:left;white-space:normal">${rk.map(r=>`${r.pl}. ${r.pl===1?'🏆 ':''}${esc(x.pl[r.p])} <b>${r.s}</b>`).join(' · ')}</td><td>${pconf==='h'+x.id?`<button class="b sm" data-act="phdel" data-id="${esc(x.id)}">Smazat</button>`:`<button class="b ghost sm" data-act="phask" data-id="${esc(x.id)}" aria-label="Smazat hru">✕</button>`}</td></tr>`;}).join('')}</tbody></table></div>`;
   return h+`</div></div>`;
 }
-function renderParty(){return PGR?pgGameHtml():pgSetupHtml();}
+// statistika párty her za zvolené období (vše se počítá z uložených šipek); hráč = jméno bez ohledu na velikost písmen
+let pview='new',pper='3',pfrom='';
+function dayKey(ts){return new Date(ts).toLocaleDateString('sv-SE',{timeZone:TZ});}
+function pgStatsHtml(){
+  const all=lsGet(LS_PG,[]).filter(x=>PG[x.game]&&PG[x.game].ok).sort((a,b)=>a.ts-b.ts);
+  const from=pper==='from'?pfrom:pper==='all'?'':dayKey(Date.now()-(+pper-1)*864e5);
+  const H=all.filter(x=>!from||dayKey(x.ts)>=from);
+  let h=`<div class="chips">${[['1','Dnes'],['3','3 dny'],['7','Týden'],['30','Měsíc'],['all','Vše'],['from','Od data']].map(([v,l])=>`<button class="chip ${pper===v?'cur':''}" data-act="pper" data-v="${v}">${l}</button>`).join('')}${pper==='from'?`<input type="date" class="pgdate" data-pfrom value="${esc(pfrom)}" aria-label="Od data">`:''}</div>`;
+  if(!H.length)return h+`<div class="card muted">Za zvolené období tu nejsou žádné odehrané párty hry.</div>`;
+  const key=n=>String(n).trim().toLowerCase(),P={},H2H={},GM={},days=new Set(),rec={turn:null,cu:{}};
+  const pp=n=>P[key(n)]||(P[key(n)]={n:String(n).trim(),g:0,w:0,pls:0,t:0,pts:0,best:0,c100:0,c140:0,c180:0,dn:0,dd:0,tt:0,bull:0,by:{},cur:0,streak:0});
+  H.forEach(x=>{
+    const st=pgReplay(Object.assign({},x,{end:1})),rk=st.rank;days.add(dayKey(x.ts));GM[x.game]=1;
+    rk.forEach(r=>{const s=pp(x.pl[r.p]),w=r.pl===1;s.g++;s.pls+=r.pl;if(w)s.w++;const b=s.by[x.game]||(s.by[x.game]={g:0,w:0});b.g++;if(w)b.w++;s.cur=w?s.cur+1:0;s.streak=Math.max(s.streak,s.cur);
+      if(x.game==='cu'){const R=(x.opt&&x.opt.r)||8,c=rec.cu[R];if(!c||r.s>c.s)rec.cu[R]={s:r.s,n:x.pl[r.p],ts:x.ts};}});
+    rk.forEach(a=>rk.forEach(b=>{if(a.p===b.p)return;const o=H2H[key(x.pl[a.p])]=H2H[key(x.pl[a.p])]||{},q=o[key(x.pl[b.p])]=o[key(x.pl[b.p])]||{w:0,g:0};q.g++;if(a.pl<b.pl)q.w++;}));
+    st.T.forEach(t=>{const s=pp(x.pl[t.p]),v=t.d.reduce((a,d)=>a+d.v,0);s.t++;s.pts+=v;if(v>s.best)s.best=v;if(v>=180)s.c180++;else if(v>=140)s.c140++;else if(v>=100)s.c100++;
+      t.d.forEach(d=>{if(d.s!=='-')s.dn++;if(d.mu===2)s.dd++;if(d.mu===3)s.tt++;if(d.n===25)s.bull++;});
+      if(!rec.turn||v>rec.turn.v)rec.turn={v,n:x.pl[t.p],ts:x.ts,d:t.d.map(pgLbl).join(' · ')};});
+  });
+  const L=Object.values(P).sort((a,b)=>b.w-a.w||a.pls/a.g-b.pls/b.g||b.g-a.g),gk=Object.keys(PG).filter(k=>GM[k]),nm=s=>esc(s.n);
+  const dn=days.size;
+  h+=`<p class="muted" style="margin:4px 0 8px">${H.length} ${H.length===1?'hra':H.length<5?'hry':'her'} · ${dn} ${dn===1?'den':dn<5?'dny':'dní'} · ${L.length} ${L.length===1?'hráč':L.length<5?'hráči':'hráčů'}</p>`;
+  h+=`<div class="card scroll"><b>Pořadí hráčů</b><table><thead><tr><th>Hráč</th><th>Her</th><th>Výher</th><th>% výher</th><th>Ø místo</th><th>Série výher</th><th>Ø na tah</th><th>Nejlepší tah</th><th>100+</th><th>140+</th><th>180</th></tr></thead><tbody>${L.map((s,i)=>`<tr><td>${i===0&&s.w?'🏆 ':''}<b>${nm(s)}</b></td><td>${s.g}</td><td>${s.w}</td><td>${fP(pc(s.w,s.g))}</td><td>${fN(s.pls/s.g)}</td><td>${s.streak}</td><td>${s.t?fN(s.pts/s.t):'–'}</td><td>${s.best}</td><td>${s.c100}</td><td>${s.c140}</td><td>${s.c180}</td></tr>`).join('')}</tbody></table>
+    <p class="muted" style="margin:6px 0 0">Řazeno podle výher, při shodě podle průměrného umístění. Remíza na 1. místě se počítá jako výhra všem. 100+ = tah 100–139, 140+ = 140–179.</p></div>`;
+  h+=`<div class="card scroll"><b>Výhry podle her</b><table><thead><tr><th>Hráč</th>${gk.map(k=>`<th>${PG[k].n}</th>`).join('')}</tr></thead><tbody>${L.map(s=>`<tr><td>${nm(s)}</td>${gk.map(k=>{const b=s.by[k];return `<td>${b?`<b>${b.w}</b>/${b.g}`:'–'}</td>`;}).join('')}</tr>`).join('')}</tbody></table><p class="muted" style="margin:6px 0 0">výher / odehraných her</p></div>`;
+  h+=`<div class="card scroll"><b>Šipky</b><table><thead><tr><th>Hráč</th><th>Šipek</th><th>Ø na šipku</th><th>Doublů</th><th>Triplů</th><th>Bull (25/50)</th></tr></thead><tbody>${L.map(s=>`<tr><td>${nm(s)}</td><td>${s.dn}</td><td>${s.dn?fN(s.pts/s.dn):'–'}</td><td>${s.dd}</td><td>${s.tt}</td><td>${s.bull}</td></tr>`).join('')}</tbody></table></div>`;
+  const R=[];
+  if(rec.turn)R.push(`Nejvyšší tah: <b>${rec.turn.v}</b> – ${esc(rec.turn.n)} (${esc(rec.turn.d)}, ${fD(rec.turn.ts)})`);
+  Object.keys(rec.cu).sort((a,b)=>a-b).forEach(r=>{const c=rec.cu[r];R.push(`Nejvyšší skóre Count Up (${r} kol): <b>${c.s}</b> – ${esc(c.n)} (${fD(c.ts)})`);});
+  const sk=L.slice().sort((a,b)=>b.streak-a.streak)[0];if(sk&&sk.streak>1)R.push(`Nejdelší série výher: <b>${sk.streak}</b> – ${nm(sk)}`);
+  const m180=L.slice().sort((a,b)=>b.c180-a.c180)[0];if(m180&&m180.c180)R.push(`Nejvíc 180: <b>${m180.c180}</b> – ${nm(m180)}`);
+  const mt=L.slice().sort((a,b)=>b.tt-a.tt)[0];if(mt&&mt.tt)R.push(`Nejvíc triplů: <b>${mt.tt}</b> – ${nm(mt)}`);
+  h+=`<div class="card"><b>Rekordy</b><ul style="margin:6px 0 0;padding-left:20px">${R.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+  if(L.length>1)h+=`<div class="card scroll"><b>Vzájemné zápasy</b><table><thead><tr><th></th>${L.map(s=>`<th>${nm(s)}</th>`).join('')}</tr></thead><tbody>${L.map(a=>`<tr><td><b>${nm(a)}</b></td>${L.map(b=>{if(a===b)return '<td>—</td>';const q=(H2H[key(a.n)]||{})[key(b.n)],r=(H2H[key(b.n)]||{})[key(a.n)];return `<td>${q?`<b>${q.w}</b> : ${r?r.w:0}`:'–'}</td>`;}).join('')}</tr>`).join('')}</tbody></table><p class="muted" style="margin:6px 0 0">Kolikrát skončil hráč v řádku před hráčem ve sloupci : kolikrát naopak (ve společných hrách).</p></div>`;
+  return h;
+}
+function renderParty(){
+  if(PGR)return pgGameHtml();
+  return `<div class="chips" style="margin:0 0 10px"><button class="chip ${pview==='new'?'cur':''}" data-act="pview" data-v="new">🎯 Nová hra</button><button class="chip ${pview==='stats'?'cur':''}" data-act="pview" data-v="stats">📊 Statistiky</button></div>`+(pview==='stats'?pgStatsHtml():pgSetupHtml());
+}
 
 /* ---------- grafy ---------- */
 const VW=640,VH=240,ML=58,MR=18,MT=14,MB=34;
@@ -2043,6 +2084,8 @@ document.addEventListener('click',async e=>{
     case 'psel':{pedit=+t.dataset.i;const d=pgSeg(PGR.darts[pedit]);pmul=d.mu===2||d.mu===3?d.mu:1;break;}
     case 'pman':pman=!pman;break;
     case 'plog':plog=!plog;break;
+    case 'pview':pview=t.dataset.v;break;
+    case 'pper':pper=t.dataset.v;if(pper==='from'&&!pfrom)pfrom=dayKey(Date.now()-6*864e5);break;
     case 'phask':pconf='h'+t.dataset.id;break;
     case 'phdel':lsSet(LS_PG,lsGet(LS_PG,[]).filter(x=>x.id!==t.dataset.id));pconf=null;break;
     case 'hold':run.paused=true;run.pausedAt=Date.now();saveDraft();break;
@@ -2088,6 +2131,7 @@ document.addEventListener('click',async e=>{
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset&&t.dataset.pn!==undefined){const i=+t.dataset.pn;pcfg.pl[i]=t.value.trim().slice(0,16)||('Hráč '+(i+1));pcSave();return;}
+  if(t.dataset&&t.dataset.pfrom!==undefined){pfrom=t.value;render();return;}
   if(t.dataset&&t.dataset.popt!==undefined){(pcfg.opt[pcfg.game]=pcfg.opt[pcfg.game]||{})[t.dataset.popt]=+t.value;pcSave();return;}
   if(t.dataset&&t.dataset.wn!==undefined){cfg.wn=+t.value;lsSet('darts_cfg',cfg);}
   if(t.dataset&&t.dataset.omode!==undefined){cfg.omode=t.value;lsSet('darts_cfg',cfg);render();}
