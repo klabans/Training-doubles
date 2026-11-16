@@ -69,6 +69,13 @@ select{font:inherit;padding:8px 10px;border-radius:8px;background:var(--card);co
 .sb .tile.ok{border-color:var(--s1)}.sb .tile.ok .v{color:var(--s1)}
 .sb .tile.ko{border-color:var(--s2)}.sb .tile.ko .v{color:var(--s2)}
 .sb .pop{animation:sbpop .45s ease-out}
+/* značky šipek z kamery na terči a seznam kola */
+.admk{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.adv{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px}
+.adv .chip{font-size:17px;font-weight:700;padding:6px 10px}
+.adv .chip.ok{border-color:var(--s1);color:var(--tx)}.adv .chip.ok b{color:var(--s1)}
+.adv .chip.ko{border-color:var(--s2);color:var(--tx)}.adv .chip.ko b{color:var(--s2)}
+.adv .muted{flex-basis:100%;font-size:13px}
 @keyframes sbpop{0%{transform:scale(1.15)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.sb .pop{animation:none}}
 @media (max-width:600px){.sb.n4{grid-template-columns:repeat(2,1fr)}}
@@ -606,13 +613,20 @@ function makeBoard(hl){
   return `<svg viewBox="-106 -106 212 212" width="100%" height="100%" aria-hidden="true" focusable="false"><circle r="104" style="fill:var(--bd-black)"/><path d="${d.black}" style="fill:var(--bd-black)"/><path d="${d.cream}" style="fill:var(--bd-cream)"/><path d="${d.red}" style="fill:var(--bd-red)"/><path d="${d.green}" style="fill:var(--bd-green)"/><circle r="9.4" style="fill:var(--bd-green)"/><circle r="3.7" style="fill:var(--bd-red)"/>${h}</svg>`;
 }
 const BOARD_SVG=makeBoard();
+// šipky posledního kola z kamery jako značky 1–3 na terči (jednotky terče, y dolů)
+function adMarks(){
+  if(!cfg.ad||!run||AD.showPh!==run.phase||AD.showRun!==run.startedAt||!AD.show.length)return '';
+  const C=v=>Math.max(-103,Math.min(103,v)).toFixed(1);
+  return AD.show.map((d,i)=>d.x==null?'':`<g><circle cx="${C(d.x)}" cy="${C(d.y)}" r="9" style="fill:${d.h?'var(--s1)':'#fff'};stroke:${d.h?'#000':'var(--s2)'};stroke-width:${d.h?1.2:2.4}"/><text x="${C(d.x)}" y="${(+C(d.y)+4.4).toFixed(1)}" text-anchor="middle" style="font:900 12.5px system-ui,sans-serif;fill:#000">${i+1}</text></g>`).join('');
+}
+function adBoard(m,hl){return m?`<svg class="admk" viewBox="-106 -106 212 212" aria-hidden="true">${m}</svg>`:'';}
 function boardize(h){
   return h.replace(/<div class="target">([^<]*)<\/div>/g,(m,t)=>{
     const x=t.trim(),mm=/^([DS])(\d+)$/.exec(x);
     let hl=null;
     if(mm) hl={type:mm[1],n:+mm[2]}; else if(x==='Bull') hl={type:'B'};
     if(!hl) return m;
-    return `<div class="bwrap"><div class="bsvg">${makeBoard(hl)}</div><div class="bdisc${hl.type==='B'?' bull':''}"><div class="target">${t}</div></div></div>`;
+    return `<div class="bwrap"><div class="bsvg">${makeBoard(hl)}</div><div class="bdisc${hl.type==='B'?' bull':''}"><div class="target">${t}</div></div>${adBoard(adMarks())}</div>`;
   });
 }
 
@@ -757,7 +771,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 10:00';
+const BUILD='verze 17. 11. 2026, 16:00';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -988,7 +1002,7 @@ function tagLast(v){
 /* ---------- Autodarts (kamera přes lokální Board Manager) ---------- */
 // websocket posílá {type:'state',data:{status,event,throws:[{segmentName,segmentNumber,multiplier,bed,coordsX,coordsY}]}};
 // throws narůstá s každou šipkou a po vytažení šipek je prázdné. Souřadnice: 1 = vnější drát doublu, y nahoru.
-const AD={ws:null,st:'off',n:-1,vis:[],tm:null};
+const AD={ws:null,st:'off',n:-1,vis:[],tm:null,show:[],showPh:-1,old:false,cur:null};
 // poloha šipky → jednotky SVG terče (1 = vnější drát doublu = 100), y dolů; seznam šipek „<double><h|m>@x,y;…“ (Bob's 27, 121, Zavírání)
 function adPos(th){return th.coordsX==null||th.coordsY==null?'':'@'+(+th.coordsX*100).toFixed(1)+','+(-th.coordsY*100).toFixed(1);}
 function ptsEnc(L){return L.filter(d=>d.p).map(d=>d.t+(d.h?'h':'m')+d.p).join(';');}
@@ -1009,28 +1023,56 @@ function adStop(){clearTimeout(AD.tm);const w=AD.ws;AD.ws=null;if(w)try{w.close(
 function adState(d){
   const L=d.throws.length;
   if(AD.n<0){AD.n=L;return;} // šipky, které už v terči byly při připojení, se nepočítají
-  if(L<AD.n){adPad(AD.n);adBob();adCxTakeout();AD.n=0;AD.vis=[];}
-  if(L>AD.n){const nw=d.throws.slice(AD.n);AD.n=L;nw.forEach(adThrow);}
+  if(L<AD.n){adPad(AD.n);adBob();adCxTakeout();AD.n=0;AD.vis=[];AD.old=true;}
+  if(L>AD.n){const nw=d.throws.slice(AD.n);AD.n=L;nw.forEach(th=>{adMark(th);adThrow(th);AD.cur=null;});}
+}
+function adMark(th){
+  if(AD.old||!run||AD.showPh!==run.phase||AD.showRun!==run.startedAt){AD.show=[];AD.old=false;}AD.showPh=run?run.phase:-1;AD.showRun=run?run.startedAt:0;
+  const p=adPos(th),q=p?p.slice(1).split(',').map(Number):null;
+  AD.cur={nm:String(th.segmentName||'?'),x:q?q[0]:null,y:q?q[1]:null,h:null,t:null,th,p,d:null,rec:null,ov:null};AD.show.push(AD.cur);
+}
+// oprava šipky z kamery: přepne zásah ↔ mimo; v řadách a ATC se další šipky kola přepočítají na nový cíl
+function adFix(i){
+  const e=AD.show[i];if(!e||!run||AD.showPh!==run.phase||AD.showRun!==run.startedAt)return;
+  const bad=()=>flash('Tuhle šipku už nejde opravit z kamery – použij „↩ Zpět“ a zadej ručně.');
+  if(e.d==null||run.darts[e.d]!==e.rec)return bad();
+  const a=e.rec.split(':'),c=a[0],nh=!e.h;
+  if(c==='k'||c==='kn'){
+    const V=AD.show.filter(x=>x.d===e.d);e.h=nh;e.ov=nh;const L=ptsEnc(V.map(x=>({t:+a[1],h:x.h,p:x.p})));
+    const rec=c+':'+a[1]+':'+V.filter(x=>x.h).length+(L?':'+L:'');run.darts[e.d]=rec;V.forEach(x=>x.rec=rec);
+  }else if(c==='p'||/^t\d*$/.test(c)){
+    a[2]=nh?'1':'0';run.darts[e.d]=e.rec=a.join(':');e.h=nh;e.ov=nh;run.tsel=null;run.tcol=null;
+  }else{
+    const tail=AD.show.slice(i),idx=new Set(tail.map(x=>x.d));
+    for(let j=e.d;j<run.darts.length;j++){const q=run.darts[j].split(':');if(!idx.has(j)&&q[0]!=='rd'&&!((q[0]==='o'||q[0]==='ot')&&q[1]==='0'))return bad();}
+    if(tail.some(x=>x.d==null||run.darts[x.d]!==x.rec))return bad();
+    const cnt=run.darts.length-e.d;run.darts.splice(e.d);let g=0;while(g<cnt&&run.groups&&run.groups.length)g+=run.groups.pop();
+    e.ov=nh;AD.show=AD.show.slice(0,i);
+    tail.forEach(x=>{x.h=null;x.t=null;x.d=null;x.rec=null;AD.show.push(x);AD.cur=x;adThrow(Object.assign({},x.th,{__h:x.ov}),true);AD.cur=null;});
+  }
+  saveDraft();render();flash('✔ Opraveno: šipka '+(i+1)+' je teď '+(nh?'zásah':'mimo')+'.');
 }
 function adPad(n){
   if(!run||run.paused||!(n>0&&n<3))return;const id=run.plan[run.phase].id;if(!['a','b','r','f','t','o'].includes(id))return;
-  for(let i=n;i<3;i++)adThrow({segmentName:'nezachyceno',segmentNumber:0,multiplier:0},true);
+  for(let i=n;i<3;i++){const th={segmentName:'nezachycená',segmentNumber:0,multiplier:0};adMark(th);adThrow(th,true);AD.cur=null;}render();
   flash('🎯 Kamera zachytila jen '+n+' z 3 šipek – chybějící '+(3-n===1?'šipka je zapsaná':'šipky jsou zapsané')+' jako mimo (oprav přes „Zpět“).');
 }
 function adBob(){
   const v=AD.vis;AD.vis=[];if(!v.length||!run||run.paused||run.plan[run.phase].id!=='k')return;
   const c=replay(run.darts).k.cur;if(c.over||c.done)return;const L=ptsEnc(v);commit(kcode()+':'+BOB[c.i]+':'+v.filter(d=>d.h).length+(L?':'+L:''));
+  const di=run.darts.length-1;AD.show.forEach(x=>{if(x.kv&&x.d==null){x.d=di;x.rec=run.darts[di];}});
 }
+function adLink(){if(AD.cur){AD.cur.d=run.darts.length-1;AD.cur.rec=run.darts[AD.cur.d];}}
 function adThrow(th,quiet){
   if(!run||run.paused)return;
   const id=run.plan[run.phase].id,R=replay(run.darts),sn=+th.segmentNumber,mu=+th.multiplier,nm=String(th.segmentName||'?');
   const dbl=t=>mu===2&&sn===t,sgl=t=>mu>0&&sn===t;
   const ps=adPos(th),tag=ps?':'+ps:'';
-  const say=(t,h)=>{if(!quiet)flash('🎯 '+nm+' → '+t+(h?' ✓ zásah':' ✗ mimo'));};
+  const say=(t,h)=>{if(AD.cur){AD.cur.h=!!h;AD.cur.t=String(t);}if(!quiet)flash('🎯 '+nm+' → '+t+(h?' ✓ zásah':' ✗ mimo'));};
   let ph,t,h;
   if(id==='a'||id==='b'){
     const r=R[id],m=ladderMode(id,r);
-    if(m==='setup'){t=fbSingle(r);h=mu===1&&sn===t;commit('ax:'+t+':'+(h?1:0));say('S'+t,h);return;}
+    if(m==='setup'){t=fbSingle(r);h=th.__h!=null?th.__h:mu===1&&sn===t;say('S'+t,h);commit('ax:'+t+':'+(h?1:0));adLink();return;}
     if(m==='dbl'){ph='ay';t=r.fbT===1?2:1;}else{ph=id;t=LADDERS[id][r.idx];}
   }
   else if(id==='f'){ph='f'+run.fc;t=LADDERS[run.fc][R[ph].lvl];}
@@ -1038,20 +1080,20 @@ function adThrow(th,quiet){
   else if(id==='p'){ph='p';t=run.pcur;run.pcur=drawP(run.pcur);}
   else if(id==='t'){
     const c=R.t.cur;if(c&&c.n>=c.N&&!run.tfresh){run.tfresh=true;run.tsel=null;run.tcol=null;if(run.tauto)run.tt=randDbl(run.tt);return adThrow(th,quiet);}
-    run.tfresh=false;t=tTarget(c);const n=c?c.n:0;if(n%3===0||!run.tsel)run.tsel=[];const k=n%3;h=dbl(t);run.tsel[k]=h;run.tcol=k;ph=tcode();
+    run.tfresh=false;t=tTarget(c);const n=c?c.n:0;if(n%3===0||!run.tsel)run.tsel=[];const k=n%3;h=th.__h!=null?th.__h:dbl(t);run.tsel[k]=h;run.tcol=k;ph=tcode();
   }
   else if(id==='o'){const o=R.o.cur;if(o.done){commit(ocode()+':0:0');return adThrow(th,quiet);}ph=ocode();t=BOB[o.i];}
-  else if(id==='k'){const c=R.k.cur;if(c.over||c.done){commit(kcode()+':0:0');return adThrow(th,quiet);}t=BOB[c.i];h=dbl(t);AD.vis.push({t,h,p:ps});say(bl(t),h);if(AD.vis.length>=3)adBob();return;}
+  else if(id==='k'){const c=R.k.cur;if(c.over||c.done){commit(kcode()+':0:0');return adThrow(th,quiet);}t=BOB[c.i];h=th.__h!=null?th.__h:dbl(t);if(AD.cur)AD.cur.kv=true;AD.vis.push({t,h,p:ps});say(bl(t),h);if(AD.vis.length>=3)adBob();else render();return;}
   else if(id==='w'&&run.wo){
     if((run.wi||0)>=BOB.length){run.wi=0;run.wd=0;run.wv=0;run.wr=0;}const i=run.wi||0;t=BOB[i];h=sgl(t);
     run.wlast=h;run.wd=(run.wd||0)+1;if(h){run.wi=i+1;run.wv=0;}else{run.wv=(run.wv||0)+1;if(run.wn&&run.wv>=run.wn){run.wi=Math.max(0,i-1);run.wv=0;run.wr=(run.wr||0)+1;}}
-    saveDraft();render();say(t===25?'Bull':String(t),h);return;
+    say(t===25?'Bull':String(t),h);saveDraft();render();return;
   }
   else if(id==='c'||id==='z'){adCheck(id,th,R);return;}
   else if(id==='w')return;
   else{flash('🎯 '+nm+' – tuhle hru zadávej ručně.');return;}
-  if(h===undefined)h=dbl(t);
-  commit(ph+':'+t+':'+(h?1:0)+tag);say(bl(t),h);
+  if(h===undefined)h=th.__h!=null?th.__h:dbl(t);
+  say(bl(t),h);commit(ph+':'+t+':'+(h?1:0)+tag);adLink();
 }
 // 121 / Zavírání z čísla: počítání zbývajícího skóre z hodů Autodarts (double-out, přetažení = zpět na začátek kola)
 function adCx(id,R){
@@ -1071,9 +1113,9 @@ function adCheck(id,th,R){
   if(x.wait){flash('🎯 '+nm+' – přetaženo, vytáhni šipky.');return;}
   const sn=+th.segmentNumber,mu=+th.multiplier,v=mu>0?sn*mu:0,r=x.rem-v;
   if(x.rem===50||(x.rem<=40&&x.rem%2===0)){x.dd++;(x.dp=x.dp||[]).push({t:x.rem===50?25:x.rem/2,h:r===0&&mu===2,p:adPos(th)});}
-  x.n++;const d={nm:mu>0?nm:'mimo',v};x.th.push(d);
+  x.n++;const d={nm:mu>0?nm:'mimo',v};x.th.push(d);if(AD.cur){AD.cur.t=String(v);}
   if(r===0&&mu===2){x.rem=0;adCxEnd(x,true);return;}
-  if(r<2){d.bust=true;x.rem=x.vs;const vn=Math.ceil(x.n/3)*3;x.wait=x.n<vn;x.n=vn;flash('🎯 '+nm+' – přetaženo, zbývá zase '+x.rem+'.');}
+  if(r<2){d.bust=true;if(AD.cur)AD.cur.t='přetaženo';x.rem=x.vs;const vn=Math.ceil(x.n/3)*3;x.wait=x.n<vn;x.n=vn;flash('🎯 '+nm+' – přetaženo, zbývá zase '+x.rem+'.');}
   else{x.rem=r;if(x.n%3===0)x.vs=r;}
   if(x.n>=x.lim){adCxEnd(x,false);return;}
   saveDraft();render();
@@ -1095,7 +1137,7 @@ function cxHtml(id,R,done){
     <div><span class="lbl">Zbývá</span> <span class="big">${rem}</span></div>
     ${x&&x.th.length?`<div class="muted">${vis(x).map((v,i)=>'kolo '+(i+1)+': <b>'+v+'</b>').join('<br>')}</div>`:'<div class="muted">Házej, hody se zapíšou samy.</div>'}
     ${x&&x.wait?'<div class="muted"><b>Přetaženo</b> – vytáhni šipky, pokračuje se dalším kolem.</div>':''}
-    ${x&&rem!==t?routeHtml(rem):''}</div>`;
+    ${x&&rem!==t?routeHtml(rem):''}${adMarks()?`<div class="bwrap" style="width:min(240px,64vw)"><div class="bsvg">${makeBoard()}</div>${adBoard(adMarks())}</div>`:''}</div>`;
   return h;
 }
 function addC(d,ok){if(replay(run.darts).c.length>=run.cn)return;commit('c:'+d+':'+(ok?1:0));}
@@ -1405,7 +1447,8 @@ function sbHtml(id,R){
   else if(id==='w'&&run.wo){const i=run.wi||0;cells.push(run.wlast==null?res('Poslední',null,'–',''):run.wlast?res('Poslední',true,'✓','zásah'):res('Poslední',false,'✗','mimo'),{lbl:'Číslo',v:i>=BOB.length?'hotovo':BOB[i]===25?'Bull':BOB[i]},{lbl:'Šipek',v:run.wd||0});}
   if(!cells.length)return '';
   const key=id==='w'?'w'+(run.wd||0):L?L.i+':'+run.darts.length:'-',pop=key!==sbSeen;sbSeen=key;
-  return `<div class="sb ${cells.length===4?'n4':''}" style="--n:${cells.length}">${cells.map((c,i)=>`<div class="tile ${c.cls||''}${i===0&&pop&&c.cls?' pop':''}"><span class="lbl">${c.lbl}</span><span class="v">${c.v}</span>${c.sub!=null?`<small>${c.sub||'&nbsp;'}</small>`:''}</div>`).join('')}</div>`;
+  const adv=cfg.ad&&AD.showPh===run.phase&&AD.showRun===run.startedAt&&AD.show.length?`<div class="adv"><span class="lbl">Kolo z kamery</span>${AD.show.map((d,i)=>{const fx=d.d!=null&&id!=='c'&&id!=='z';return `<${fx?'button':'span'} class="chip ${d.h==null?'':d.h?'ok':'ko'}"${fx?` data-act="adfix" data-i="${i}" title="Ťukni pro opravu: přepne zásah ↔ mimo"`:''}><b>${i+1}</b> ${esc(d.nm)}${d.t!=null?' → '+esc(d.t)+(d.h==null?'':d.h?' ✓':' ✗'):''}${d.ov!=null?' (opraveno)':''}${fx?' <span aria-hidden="true">⇄</span>':''}</${fx?'button':'span'}>`;}).join('')}<span class="muted">${id==='c'||id==='z'?'Nesedí? Zapiš pokus ručně tlačítky níže – rozehraný pokus z kamery se tím zahodí.':'Kamera zapsala šipku špatně? Ťukni na ni – přepne se zásah ↔ mimo'+(id==='a'||id==='b'||id==='f'||id==='r'||id==='o'?' a další šipky kola se přepočítají na správný cíl.':'.')}</span></div>`:'';
+  return adv+`<div class="sb ${cells.length===4?'n4':''}" style="--n:${cells.length}">${cells.map((c,i)=>`<div class="tile ${c.cls||''}${i===0&&pop&&c.cls?' pop':''}"><span class="lbl">${c.lbl}</span><span class="v">${c.v}</span>${c.sub!=null?`<small>${c.sub||'&nbsp;'}</small>`:''}</div>`).join('')}</div>`;
 }
 function canRepeat(id){if(id==='w') return false;if(['a','b','r','f','p'].includes(id)) return !!(run.lim||{})[id];return true;}
 function repeatPhase(){
@@ -1783,6 +1826,7 @@ document.addEventListener('click',async e=>{
     case 'tauto':run.tauto=!run.tauto;if(run.tauto){const c=replay(run.darts).t.cur;if(!(c&&c.n>0&&c.n<c.N))run.tt=randDbl(run.tt);}saveDraft();break;
     case 'resume':startRun(draftPending);run.running=false;run.paused=false;run.lastIn=Date.now();saveDraft();break;
     case 'adtog':cfg.ad=!cfg.ad;lsSet('darts_cfg',cfg);if(cfg.ad)adConnect();else adStop();break;
+    case 'adfix':adFix(+t.dataset.i);return;
     case 'hold':run.paused=true;run.pausedAt=Date.now();saveDraft();break;
     case 'unhold':run.paused=false;run.pausedAt=0;run.lastIn=Date.now();saveDraft();break;
     case 'discard-draft':lsDel(LS_D);draftPending=null;break;
