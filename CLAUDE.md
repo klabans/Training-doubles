@@ -29,7 +29,7 @@ Stačí otevřít `index.html` v prohlížeči (nebo jakýkoli statický server)
    - **účet**: `FIREBASE_CONFIG`, `makeFirebase()`, `Cloud`, přihlašovací formulář; bez přihlášení je aplikace „gated“.
    - **stav**: `cfg` (localStorage `darts_cfg`), `run` (běžící trénink, draft v `darts_draft_v1`).
    - **pohledy**: `renderTrainIdle`, `renderTrainActive`, `renderParty`, `renderStats`, `renderHist`, `renderStyle`; 14denní plán `P14`.
-   - **velká tabule**: `sbHtml(id,R)` nad terčem běžící hry – poslední hod ✓/✗ (`lastRec`) + 2–3 klíčové hodnoty dané hry, čitelné od odhodové čáry (CSS `.sb`, velikost přes container query `cqi`).
+   - **velká tabule**: `sbHtml(id,R)` nad terčem běžící hry – poslední hod ✓/✗ (`lastRec`) + 2–3 klíčové hodnoty dané hry, čitelné od odhodové čáry (CSS `.sb`, velikost přes container query `cqi`). Během hry (tréninku i párty) má `body` třídu `running`: skryje se logo, kicker i účet a v záhlaví zůstane jen název hry (`#sub`), aby se hra vešla na obrazovku.
    - **render + události**: `render()` přepíše celý `#main` přes `innerHTML`; jeden delegovaný `click` handler se `switch` podle `data-act`, jeden `change` handler podle `data-*` atributů.
 
 ## Datový model (důležité)
@@ -74,7 +74,7 @@ Každý záznam v `darts` je řetězec `fáze:double:zásah[:extra…]`:
 - Hry pro 1–8 hráčů u jednoho terče, oddělené od tréninku: vlastní úložiště jen v localStorage (`darts_party_cfg` = hráči/hra/volby `pcfg`, `darts_pdraft_v1` = běžící hra `PGR`, `darts_party_v1` = odehrané hry), do Firestore ani do statistik doublů nejdou.
 - Hra = `{id:'g'+ts, ts, game, opt, pl:[jména], darts:[…], end}`. Šipka = `S20 | D20 | T20 | SB | DB | M` (mimo) `| -` (nehozená – doplnění tahu přes „Konec tahu“ nebo vytažení po < 3 šipkách z kamery), volitelně `@x,y` (poloha z Autodarts) a `*` (ručně opraveno). Tah = vždy 3 záznamy (kromě tahu, kterým hra skončí).
 - Katalog `PG` (`ki cr sh hi ac go bb cu hh fv dk tt bk cd`); hratelné mají `ok:1` a háčky `init/dart/turn/rounds/rank/cells/tile/resH/res`. Zatím jen Count Up (`cu`). Stav vždy z `pgReplay(G)` (`st.p` hráč na tahu, `st.rd` kolo, `st.T` tahy, `st.t` rozehraný tah, `st.out` vyřazení, `st.over`, `st.rank`), proto oprava kterékoli šipky (`pedit` + `pgSet`) jen přepíše záznam a vše se přepočítá; šipky za koncem hry se ignorují (oprava může hru znovu otevřít).
-- Klávesnice Single/Double/Triple (`pmul`, po šipce zpět na Single) + 1–20, 25/Bull, Mimo; „Zpět“ (`pgUndo`) vrací i doplněné `-` najednou. Autodarts: `adState` při `pgOn()` (záložka Párty + běžící hra) posílá šipky do `pgAd`, vytažení do `pgTakeout`.
+- Klávesnice Single/Double/Triple (`pmul`, po šipce zpět na Single) + 1–20, 25/Bull, Mimo; „Zpět“ (`pgUndo`) vrací i doplněné `-` najednou. S Autodarts je klávesnice skrytá (ruční zápis přes `pman`) a ukáže se jen jako panel opravy (`.pged`) po ťuknutí na šipku: panel ukazuje všechny 3 šipky tahu (`psel`), po opravě `pgSet` přejde na další šipku tahu, po poslední nebo „Hotovo“ se zavře. Autodarts: `adState` při `pgOn()` (záložka Párty + běžící hra) posílá šipky do `pgAd`, vytažení do `pgTakeout`.
 
 ## Známé zvláštnosti
 

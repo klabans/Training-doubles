@@ -104,11 +104,14 @@ textarea{width:100%;min-height:90px;background:var(--card);color:var(--tx);borde
 .mpad{display:block;width:100%;max-width:320px;aspect-ratio:1;margin:6px auto;border-radius:14px;cursor:crosshair;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .mscat{display:block;width:100%;max-width:300px;aspect-ratio:1;margin:6px auto}
 .bars.wide .r{grid-template-columns:120px 1fr 90px}
+/* během hry jen název hry: bez loga, kickeru a účtu, ať se hra vejde na obrazovku */
+body.running .banner h1,body.running .kicker,body.running .bboard,body.running #acct{display:none!important}
+body.running .binner{padding-top:8px!important;padding-bottom:8px!important}
+body.running .subtitle{font-size:24px!important;line-height:1.1!important;margin:0!important}
+body.running .app{padding-top:8px}
+body.running .tabs{margin-bottom:8px}
+@media (min-width:768px){body.running .subtitle{font-size:32px!important}}
 @media (max-width:767px){
-  body.running .banner h1{font-size:22px!important;line-height:1.05!important;max-width:none!important;margin:2px 0 0!important;display:flex!important}
-  body.running .banner h1::before{display:none!important}
-  body.running .kicker,body.running .bboard{display:none!important}
-  body.running .subtitle{font-size:17px!important;margin:2px 0 4px!important}
   .gc .chips.plan{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
   .gc .chips.plan .chip{flex:none}
   .bwrap{width:min(210px,56vw)!important}
@@ -193,6 +196,8 @@ button.dt{cursor:pointer}
 .dt.nx{border-style:dashed;color:var(--tx3)}.dt.now{border-color:var(--s1)}
 .dt.ed{border-color:var(--s2);box-shadow:0 0 0 3px var(--s2)}
 .dt.tot{border-color:transparent;background:transparent}.dt.tot b{color:var(--s1)}
+.pgd.pgd3{grid-template-columns:repeat(3,1fr)}
+.pged{border:2px solid var(--s2);border-radius:12px;padding:10px;margin:0 0 10px;background:var(--card)}
 .pgprev{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
 .pgprev .chip{font-size:16px;padding:5px 10px}
 .pgp{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:0 0 10px}
@@ -205,6 +210,7 @@ button.dt{cursor:pointer}
 .pkm .b,.pkn .b,.pkb .b{min-height:56px;padding:4px 2px;font-size:20px;min-width:0}
 .pkb .b{font-size:17px}.pkb .b:disabled{opacity:.3;cursor:default}
 @media (min-width:768px){.pkn .b{min-height:68px;font-size:26px}.pkm .b{min-height:60px}}
+@media (max-width:767px){.pkm .b,.pkn .b,.pkb .b{min-height:46px}.sb .tile.nm .v{font-size:clamp(30px,16cqi,64px)}.pgd,.pgprev{margin-bottom:6px}}
 .dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
 .dcol{display:flex;flex-direction:column;gap:8px;padding:6px;border-radius:16px;border:2px solid transparent}
 .dcol.cur{border-color:var(--s1)}
@@ -803,7 +809,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 16. 11. 2026, 21:30';
+const BUILD='verze 16. 11. 2026, 22:30';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1216,7 +1222,7 @@ const PG={
  cd:{n:'Chase the Dragon',cz:'Honba za drakem'}
 };
 let pcfg=lsGet(LS_PC,null)||{pl:['Hráč 1','Hráč 2'],game:'cu',opt:{}};if(!pcfg.opt)pcfg.opt={};if(!(PG[pcfg.game]&&PG[pcfg.game].ok))pcfg.game='cu';
-let PGR=lsGet(LS_PD,null),pmul=1,pedit=null,plog=false,pconf=null,pscroll=false;
+let PGR=lsGet(LS_PD,null),pmul=1,pedit=null,plog=false,pconf=null,pscroll=false,pman=false;
 if(PGR&&!(PG[PGR.game]&&PG[PGR.game].ok&&Array.isArray(PGR.darts)))PGR=null;
 function pgSave(){if(PGR)lsSet(LS_PD,PGR);else lsDel(LS_PD);}
 function pcSave(){lsSet(LS_PC,pcfg);}
@@ -1256,7 +1262,9 @@ function pgKey(n){
   if(pedit!=null)pgSet(pedit,s);else pgPush([s]);
 }
 function pgSet(i,s){
-  const a=pgSeg(PGR.darts[i]),B=pgReplay(PGR);pedit=null;pmul=1;
+  // po opravě se přejde na další šipku téhož tahu (lze opravit všechny tři za sebou); po poslední se oprava zavře
+  const a=pgSeg(PGR.darts[i]),B=pgReplay(PGR),et=B.T.find(t=>t.d.some(d=>d.i===i)),nx=et&&et.d.find(d=>d.i>i);
+  pedit=nx?nx.i:null;pmul=nx&&(nx.mu===2||nx.mu===3)?nx.mu:1;
   if(s===a.s){render();return;}
   PGR.darts[i]=s+(a.x!=null?'@'+a.x+','+a.y:'')+'*';pgSave();
   const A=pgReplay(PGR);
@@ -1289,24 +1297,26 @@ function pgFinish(again){
 }
 function pgChip(d){return `<button class="chip${pedit===d.i?' cur':''}" data-act="pedit" data-i="${d.i}" title="Ťukni pro opravu">${pgLbl(d)}${d.fix?' ✎':''}</button>`;}
 function pgKeys(st){
-  const G=PGR;let h='';
-  if(pedit!=null){
-    const et=st.T.find(t=>t.d.some(d=>d.i===pedit));
-    if(!et)pedit=null;
-    else{const d=et.d.find(x=>x.i===pedit);h+=`<div class="note">✎ Oprava – <b>${esc(G.pl[et.p])}</b>, kolo ${et.rd}, šipka ${et.d.indexOf(d)+1}: zapsáno <b>${pgLbl(d)}</b>. Vyber správnou hodnotu (Single / Double / Triple a číslo).</div>`;}
-  }
+  const G=PGR;let h='',et=null;
+  if(pedit!=null){et=st.T.find(t=>t.d.some(d=>d.i===pedit));if(!et)pedit=null;}
   const e=pedit!=null;
+  // s kamerou se klávesnice ukáže jen pro opravu (ťuknutím na šipku) nebo na přání pro ruční zápis
+  if(!e&&cfg.ad&&!pman)return `<div class="card" style="text-align:center;margin-top:0"><p class="muted" style="margin:0 0 8px">🎯 Šipky zapisuje kamera. Špatně přečtenou šipku opravíš ťuknutím na ni – otevře se tabulka pro opravu.</p><button class="b ghost sm" data-act="pman">⌨ Zadávat ručně</button></div>`;
+  if(e){const k=et.d.findIndex(d=>d.i===pedit);h+=`<div class="row spread" style="margin:0 0 8px"><b>✎ Oprava tahu – ${esc(G.pl[et.p])}, kolo ${et.rd}</b><button class="b sm" data-act="pecancel">✔ Hotovo</button></div>
+    <div class="pgd pgd3">${et.d.map((d,j)=>`<button class="dt${d.i===pedit?' ed':''}" data-act="psel" data-i="${d.i}"><b>${pgLbl(d)}</b><small>šipka ${j+1}${d.fix?' · opraveno':''}</small></button>`).join('')}</div>
+    <p class="muted" style="margin:0 0 8px">Vyber správnou hodnotu pro <b>šipku ${k+1}</b>, pak se přejde na další šipku tahu. Šipku, která sedí, přeskočíš ťuknutím na jinou.</p>`;}
   h+=`<div class="pkm">${[1,2,3].map(v=>`<button class="b${pmul===v?'':' ghost'}" data-act="pmul" data-v="${v}">${['Single','Double','Triple'][v-1]}</button>`).join('')}</div>`;
   h+=`<div class="pkn">${Array.from({length:20},(_,i)=>`<button class="b ghost" data-act="pnum" data-v="${i+1}">${pmul===1?'':'SDT'[pmul-1]}${i+1}</button>`).join('')}</div>`;
-  h+=`<div class="pkb${e?' e':''}"><button class="b ghost" data-act="pnum" data-v="25"${pmul===3?' disabled':''}>${pmul===2?'Bull 50':'25'}</button><button class="b miss" data-act="pnum" data-v="0">Mimo</button>${e?'<button class="b ghost" data-act="pecancel">Zrušit</button>':'<button class="b ghost" data-act="pundo">↩ Zpět</button><button class="b ghost" data-act="pturn">Konec tahu</button>'}</div>`;
-  if(!e)h+=`<p class="muted" style="margin:0 0 8px">Double / Triple platí pro jednu šipku. Špatně zapsanou šipku opravíš ťuknutím na ni (nahoře nebo v průběhu hry).</p>`;
+  h+=`<div class="pkb${e?' e':''}"><button class="b ghost" data-act="pnum" data-v="25"${pmul===3?' disabled':''}>${pmul===2?'Bull 50':'25'}</button><button class="b miss" data-act="pnum" data-v="0">Mimo</button>${e?'<button class="b" data-act="pecancel">✔ Hotovo</button>':'<button class="b ghost" data-act="pundo">↩ Zpět</button><button class="b ghost" data-act="pturn">Konec tahu</button>'}</div>`;
+  if(e)return `<div class="pged">${h}</div>`;
+  h+=`<p class="muted" style="margin:0 0 8px">Double / Triple platí pro jednu šipku. Špatně zapsanou šipku opravíš ťuknutím na ni (nahoře nebo v průběhu hry).${cfg.ad?' <button class="b ghost sm" data-act="pman">Skrýt klávesnici</button>':''}</p>`;
   return h;
 }
 function pgGameHtml(){
   const G=PGR,g=PG[G.game],st=pgReplay(G),nm=i=>esc(G.pl[i]),sum=t=>t.d.reduce((a,d)=>a+d.v,0);
   const cur=st.t&&st.t.d.length?st.t:null,prev=st.T[st.T.length-(st.t?2:1)]||null;
   let A='',K='',P='',L='';
-  const top=`<div class="row spread" style="margin:0 0 6px"><span class="muted"><b>${g.n}</b> ·${G.pl.length} ${G.pl.length<5?'hráči':'hráčů'}</span><span class="row"><button class="chip ${cfg.ad?'cur':''}" data-act="adtog" title="Zápis šipek z kamery Autodarts (Board Manager na tomto počítači)">🎯 Autodarts: <span id="adSt">${cfg.ad?adLbl():'vypnuto'}</span></button><button class="b ghost sm" data-act="pquit">✕ Zahodit hru</button></span></div>`;
+  const top=`<div class="row spread" style="margin:0 0 6px"><span class="muted">${G.pl.length} ${G.pl.length<5?'hráči':'hráčů'}</span><span class="row"><button class="chip ${cfg.ad?'cur':''}" data-act="adtog" title="Zápis šipek z kamery Autodarts (Board Manager na tomto počítači)">🎯 Autodarts: <span id="adSt">${cfg.ad?adLbl():'vypnuto'}</span></button><button class="b ghost sm" data-act="pquit">✕ Zahodit hru</button></span></div>`;
   if(st.over){
     const w=st.rank.filter(x=>x.pl===1);
     A=`<div class="card verdict" style="text-align:center"><span class="lbl">Konec hry · ${g.n}</span><div class="big">🏆 ${w.map(x=>nm(x.p)).join(' + ')}</div><div class="muted">${w.length>1?'Remíza':'Vítěz'} · ${g.resH[0]} ${st.rank[0].s}</div></div>
@@ -1319,12 +1329,12 @@ function pgGameHtml(){
   }
   if(prev)A+=`<div class="pgprev"><span class="muted">${st.over?'Poslední':'Předchozí'} tah · <b>${nm(prev.p)}</b>:</span>${prev.d.map(pgChip).join('')}<span class="muted">= ${sum(prev)}</span></div>`;
   const mt=cur&&cur.d.some(d=>d.x!=null)?cur:prev&&prev.d.some(d=>d.x!=null)?prev:null;
-  if(mt)A+=`<div class="muted" style="text-align:center">Kam šly šipky – ${mt===cur?'tento tah':esc(G.pl[mt.p])+' (předchozí tah)'}</div><div class="bwrap" style="width:min(240px,60vw)"><div class="bsvg">${makeBoard()}</div>${adBoard(dartMarks(mt.d.map(d=>({x:d.x,y:d.y,h:d.v>0}))))}</div>`;
+  const BD=!mt?'':`<div class="muted" style="text-align:center">Kam šly šipky – ${mt===cur?'tento tah':esc(G.pl[mt.p])+' (předchozí tah)'}</div><div class="bwrap" style="width:min(240px,60vw)"><div class="bsvg">${makeBoard()}</div>${adBoard(dartMarks(mt.d.map(d=>({x:d.x,y:d.y,h:d.v>0}))))}</div>`;
   if(!st.over||pedit!=null)K=pgKeys(st);
   if(!st.over)P=`<div class="pgp">${G.pl.map((n,i)=>{const x=g.tile(st.pl[i],st,G,i);return `<div class="tile${i===st.p?' cur':''}"><span class="lbl">${esc(n)}</span><span class="v">${x.v}</span><small>${x.sub}</small></div>`;}).join('')}</div>`;
   if(st.T.length)L=`<div class="card"><button class="howbtn" data-act="plog">${plog?'▾':'▸'} Průběh hry (${st.T.length} ${st.T.length===1?'tah':st.T.length<5?'tahy':'tahů'}) – ťuknutím na šipku ji opravíš</button>${plog?st.T.slice().reverse().map(t=>`<div class="pgprev"><span class="muted">kolo ${t.rd} · <b>${nm(t.p)}</b>:</span>${t.d.map(pgChip).join('')}<span class="muted">= ${sum(t)}</span></div>`).join(''):''}</div>`;
   if(pscroll){pscroll=false;after.push(()=>{const k=$('.pgk');if(k)k.scrollIntoView({block:'nearest',behavior:'smooth'});});}
-  return top+`<div class="pgg"><div class="pga">${A}</div><div class="pgk">${K}</div><div class="pgpp">${P}</div><div class="pgl">${L}</div></div>`;
+  return top+`<div class="pgg"><div class="pga">${A}</div><div class="pgk">${K}</div><div class="pgpp">${BD}${P}</div><div class="pgl">${L}</div></div>`;
 }
 function pgSetupHtml(){
   const g=PG[pcfg.game],o=pgOpt(pcfg.game),H=lsGet(LS_PG,[]).filter(x=>PG[x.game]&&PG[x.game].ok);
@@ -2030,6 +2040,8 @@ document.addEventListener('click',async e=>{
     case 'pturn':pgTurn();return;
     case 'pedit':{const i=+t.dataset.i;if(pedit===i){pedit=null;pmul=1;}else{pedit=i;const d=pgSeg(PGR.darts[i]);pmul=d.mu===2||d.mu===3?d.mu:1;pscroll=true;}break;}
     case 'pecancel':pedit=null;pmul=1;break;
+    case 'psel':{pedit=+t.dataset.i;const d=pgSeg(PGR.darts[pedit]);pmul=d.mu===2||d.mu===3?d.mu:1;break;}
+    case 'pman':pman=!pman;break;
     case 'plog':plog=!plog;break;
     case 'phask':pconf='h'+t.dataset.id;break;
     case 'phdel':lsSet(LS_PG,lsGet(LS_PG,[]).filter(x=>x.id!==t.dataset.id));pconf=null;break;
