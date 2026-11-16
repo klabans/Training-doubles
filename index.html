@@ -803,7 +803,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 16. 11. 2026, 21:00';
+const BUILD='verze 16. 11. 2026, 21:30';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1244,7 +1244,7 @@ function pgReplay(G){
   return st;
 }
 function pgOn(){return tab==='party'&&!!PGR;}
-function pgWin(A){const g=PG[PGR.game],w=A.rank.filter(x=>x.pl===1).map(x=>PGR.pl[x.p]);say('🏆 '+w.join(' + '),(w.length>1?'Remíza':'Vítěz')+' · '+g.cz+' · '+g.resH[0]+' '+A.rank[0].s);}
+function pgWin(A){const g=PG[PGR.game],w=A.rank.filter(x=>x.pl===1).map(x=>PGR.pl[x.p]);say('🏆 '+w.join(' + '),(w.length>1?'Remíza':'Vítěz')+' · '+g.n+' · '+g.resH[0]+' '+A.rank[0].s);}
 function pgPush(recs){
   if(!PGR)return;const B=pgReplay(PGR);
   if(B.over){flash('Hra skončila – šipku opravíš ťuknutím, „↩ Vrátit poslední šipku“ hru obnoví.');return;}
@@ -1306,10 +1306,10 @@ function pgGameHtml(){
   const G=PGR,g=PG[G.game],st=pgReplay(G),nm=i=>esc(G.pl[i]),sum=t=>t.d.reduce((a,d)=>a+d.v,0);
   const cur=st.t&&st.t.d.length?st.t:null,prev=st.T[st.T.length-(st.t?2:1)]||null;
   let A='',K='',P='',L='';
-  const top=`<div class="row spread" style="margin:0 0 6px"><span class="muted"><b>${g.cz}</b> (${g.n}) · ${G.pl.length} ${G.pl.length<5?'hráči':'hráčů'}</span><span class="row"><button class="chip ${cfg.ad?'cur':''}" data-act="adtog" title="Zápis šipek z kamery Autodarts (Board Manager na tomto počítači)">🎯 Autodarts: <span id="adSt">${cfg.ad?adLbl():'vypnuto'}</span></button><button class="b ghost sm" data-act="pquit">✕ Zahodit hru</button></span></div>`;
+  const top=`<div class="row spread" style="margin:0 0 6px"><span class="muted"><b>${g.n}</b> ·${G.pl.length} ${G.pl.length<5?'hráči':'hráčů'}</span><span class="row"><button class="chip ${cfg.ad?'cur':''}" data-act="adtog" title="Zápis šipek z kamery Autodarts (Board Manager na tomto počítači)">🎯 Autodarts: <span id="adSt">${cfg.ad?adLbl():'vypnuto'}</span></button><button class="b ghost sm" data-act="pquit">✕ Zahodit hru</button></span></div>`;
   if(st.over){
     const w=st.rank.filter(x=>x.pl===1);
-    A=`<div class="card verdict" style="text-align:center"><span class="lbl">Konec hry · ${g.cz}</span><div class="big">🏆 ${w.map(x=>nm(x.p)).join(' + ')}</div><div class="muted">${w.length>1?'Remíza':'Vítěz'} · ${g.resH[0]} ${st.rank[0].s}</div></div>
+    A=`<div class="card verdict" style="text-align:center"><span class="lbl">Konec hry · ${g.n}</span><div class="big">🏆 ${w.map(x=>nm(x.p)).join(' + ')}</div><div class="muted">${w.length>1?'Remíza':'Vítěz'} · ${g.resH[0]} ${st.rank[0].s}</div></div>
     <div class="card scroll"><table><thead><tr><th>Pořadí</th><th>Hráč</th>${g.resH.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${st.rank.map(x=>`<tr><td>${x.pl}.</td><td>${nm(x.p)}</td>${g.res(st.pl[x.p]).map(v=>`<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     <div class="row" style="justify-content:center;margin:6px 0 12px"><button class="b start" data-act="pagain">🔁 Odveta</button><button class="b" data-act="pdone">✔ Uložit a zpět</button><button class="b ghost" data-act="pundo">↩ Vrátit poslední šipku</button></div>`;
   }else{
@@ -1331,12 +1331,12 @@ function pgSetupHtml(){
   let h=`<div class="igrid"><div><div class="card"><b>Hráči</b> <span class="muted">(${pcfg.pl.length}/8 · v tomto pořadí se hází)</span>
   ${pcfg.pl.map((n,i)=>`<div class="row pgpl"><span class="pgno">${i+1}.</span><input type="text" maxlength="16" value="${esc(n)}" data-pn="${i}" aria-label="Jméno hráče ${i+1}"><button class="b ghost sm" data-act="pup" data-i="${i}"${i?'':' disabled'} aria-label="Posunout výš">↑</button><button class="b ghost sm" data-act="pdel" data-i="${i}"${pcfg.pl.length>1?'':' disabled'} aria-label="Odebrat hráče">✕</button></div>`).join('')}
   <div class="row" style="margin-top:8px"><button class="b ghost sm" data-act="padd"${pcfg.pl.length>=8?' disabled':''}>+ Přidat hráče</button><button class="b ghost sm" data-act="pshuf">🔀 Zamíchat pořadí</button></div></div>
-  <div class="card"><b>Hra</b><div class="chips">${Object.keys(PG).map(k=>{const x=PG[k];return x.ok?`<button class="chip ${k===pcfg.game?'cur':''}" data-act="pgame" data-v="${k}">${x.cz}</button>`:`<span class="chip" style="opacity:.4" title="Připravujeme">${x.cz}</span>`;}).join('')}</div>
-  <p class="muted" style="margin:4px 0"><b>${g.cz}</b> (${g.n}): ${g.desc}</p>
+  <div class="card"><b>Hra</b><div class="chips">${Object.keys(PG).map(k=>{const x=PG[k];return x.ok?`<button class="chip ${k===pcfg.game?'cur':''}" data-act="pgame" data-v="${k}">${x.n}</button>`:`<span class="chip" style="opacity:.4" title="Připravujeme">${x.n}</span>`;}).join('')}</div>
+  <p class="muted" style="margin:4px 0"><b>${g.n}</b>:${g.desc}</p>
   ${Object.keys(g.opt||{}).map(q=>`<label class="row" style="margin:6px 0"><span>${g.opt[q].l}</span><select data-popt="${q}">${g.opt[q].v.map(v=>`<option value="${v}"${v===o[q]?' selected':''}>${v}</option>`).join('')}</select></label>`).join('')}
   <p class="muted" style="margin:6px 0 0">Šedé hry přibudou postupně.</p></div></div>
-  <div><div class="card" style="text-align:center"><button class="b start" data-act="pstart" style="width:100%">▶ Hrát: ${g.cz}</button><p class="muted" style="margin:8px 0 0">Všichni hází u jednoho terče, po 3 šipkách se střídá hráč. Šipky se zadávají na klávesnici Single / Double / Triple a číslo. S Autodarts se zapíšou samy a špatně přečtenou šipku opravíš ťuknutím na ni. Párty hry se ukládají jen v tomto zařízení a do statistik doublů se nepočítají.</p></div>`;
-  if(H.length)h+=`<div class="card scroll"><b>Odehrané hry</b><table><thead><tr><th>Datum</th><th>Hra</th><th style="text-align:left">Pořadí</th><th></th></tr></thead><tbody>${H.slice().reverse().slice(0,30).map(x=>{const rk=pgReplay(Object.assign({},x,{end:1})).rank;return `<tr><td>${fDL(x.ts)}</td><td>${PG[x.game].cz}</td><td style="text-align:left;white-space:normal">${rk.map(r=>`${r.pl}. ${r.pl===1?'🏆 ':''}${esc(x.pl[r.p])} <b>${r.s}</b>`).join(' · ')}</td><td>${pconf==='h'+x.id?`<button class="b sm" data-act="phdel" data-id="${esc(x.id)}">Smazat</button>`:`<button class="b ghost sm" data-act="phask" data-id="${esc(x.id)}" aria-label="Smazat hru">✕</button>`}</td></tr>`;}).join('')}</tbody></table></div>`;
+  <div><div class="card" style="text-align:center"><button class="b start" data-act="pstart" style="width:100%">▶ Hrát: ${g.n}</button><p class="muted" style="margin:8px 0 0">Všichni hází u jednoho terče, po 3 šipkách se střídá hráč. Šipky se zadávají na klávesnici Single / Double / Triple a číslo. S Autodarts se zapíšou samy a špatně přečtenou šipku opravíš ťuknutím na ni. Párty hry se ukládají jen v tomto zařízení a do statistik doublů se nepočítají.</p></div>`;
+  if(H.length)h+=`<div class="card scroll"><b>Odehrané hry</b><table><thead><tr><th>Datum</th><th>Hra</th><th style="text-align:left">Pořadí</th><th></th></tr></thead><tbody>${H.slice().reverse().slice(0,30).map(x=>{const rk=pgReplay(Object.assign({},x,{end:1})).rank;return `<tr><td>${fDL(x.ts)}</td><td>${PG[x.game].n}</td><td style="text-align:left;white-space:normal">${rk.map(r=>`${r.pl}. ${r.pl===1?'🏆 ':''}${esc(x.pl[r.p])} <b>${r.s}</b>`).join(' · ')}</td><td>${pconf==='h'+x.id?`<button class="b sm" data-act="phdel" data-id="${esc(x.id)}">Smazat</button>`:`<button class="b ghost sm" data-act="phask" data-id="${esc(x.id)}" aria-label="Smazat hru">✕</button>`}</td></tr>`;}).join('')}</tbody></table></div>`;
   return h+`</div></div>`;
 }
 function renderParty(){return PGR?pgGameHtml():pgSetupHtml();}
@@ -1956,7 +1956,7 @@ function render(){
   document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===tab));
   after.length=0;
   const g=gateState();document.body.classList.toggle('gated',!!g);document.body.classList.toggle('running',!g&&(!!run&&tab==='train'||!!PGR&&tab==='party'));
-  {const sb=$('#sub');if(sb)sb.textContent=g?'':(run&&tab==='train')?run.plan[run.phase].name:(PGR&&tab==='party')?'Párty · '+PG[PGR.game].cz:'';}
+  {const sb=$('#sub');if(sb)sb.textContent=g?'':(run&&tab==='train')?run.plan[run.phase].name:(PGR&&tab==='party')?'Párty · '+PG[PGR.game].n:'';}
   if(g){$('#main').innerHTML=g==='loading'?'<div class="card muted">Načítám…</div>':'<div class="card muted">Přihlaste se, aby se tréninky ukládaly do vašeho účtu.</div>';renderAcct();return;}
   const m=$('#main');
   m.innerHTML=tab==='train'?(run?renderTrainActive():renderTrainIdle()):tab==='party'?renderParty():tab==='stats'?renderStats():tab==='style'?renderStyle():renderHist();
