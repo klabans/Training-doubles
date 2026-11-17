@@ -243,6 +243,7 @@ button.dt{cursor:pointer}
 .pgd.pgd3{grid-template-columns:repeat(3,1fr)}
 .pged{border:2px solid var(--s2);border-radius:12px;padding:10px;margin:0 0 10px;background:var(--card)}
 .mts b{color:var(--s1);font-variant-numeric:tabular-nums}.mtc .mts{font-size:clamp(22px,6vw,34px);font-weight:900;margin:4px 0}
+.nw{white-space:nowrap}.mplus{color:var(--s1)}.mminus{color:var(--s2)}.patr{margin:6px 0 0;padding-left:20px}.patr li{margin:2px 0}.pay{font-size:clamp(17px,4.5vw,22px);margin-top:4px}
 .pgprev{min-height:38px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
 .pgprev .chip{font-size:16px;padding:5px 10px}
 .pgp{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:0 0 10px}
@@ -871,7 +872,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 19:46';
+const BUILD='verze 17. 11. 2026, 20:11';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1266,7 +1267,7 @@ function addBob(n){
 // hra = {id:'g'+ts,ts,game,opt,pl:[jména],darts:[…]}; šipka = S20 | D20 | T20 | SB | DB | M (mimo) | - (nehozená, doplnění tahu),
 // za ní volitelně poloha z kamery "@x,y" a "*" = ručně opraveno. Tah = vždy 3 záznamy (kromě tahu, kterým hra skončí);
 // stav hry se vždy přepočítá z darts (pgReplay), proto jde opravit kterákoli šipka. Ukládá se jen v tomto zařízení.
-const LS_PG='darts_party_v1',LS_PD='darts_pdraft_v1',LS_PC='darts_party_cfg';
+const LS_PG='darts_party_v1',LS_PD='darts_pdraft_v1',LS_PC='darts_party_cfg',LS_PA='darts_party_acc';
 // pomocné konstanty párty her
 const CR=[15,16,17,18,19,20,25];                       // Cricket
 const HI=[15,16,'D',17,18,'T',19,20,'B'];              // Halve It
@@ -1573,6 +1574,64 @@ function pgMatch(G,st){
 }
 function ftLbl(n){return n>1?'na '+n+' vítězn'+(n<5?'é':'ých'):'jedna hra';}
 function mtTxt(M){return M.pl.length===2?M.pl[0]+' '+M.w[0]+' : '+M.w[1]+' '+M.pl[1]:M.pl.map((n,i)=>n+' '+M.w[i]).join(' · ');}
+// hra o peníze: G.bet = sázka (Kč) každého hráče, G.acc = id účtu herního dne (LS_PA = [{id,ts,paid:[{f,t,v,ts}],end?}]).
+// Každý vloží sázku, vítěz bere bank (remíza na 1. místě = bank se dělí); u zápasu na N vítězných se hraje o celý zápas (peníze až po jeho rozhodnutí).
+// Bilance se vždy počítá z uložených her účtu + zapsaných vyrovnání (paid: f zaplatil t částku v).
+function kc(v){v=Math.round(v*100)/100;return (v<0?'−':'')+Math.abs(v).toLocaleString('cs-CZ',{maximumFractionDigits:2})+' Kč';}
+function kcs(v){return (v>.004?'+':'')+kc(Math.abs(v)<.005?0:v);}
+function fClk(ts){return new Date(ts).toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit',timeZone:TZ});}
+function accAll(){return lsGet(LS_PA,[]);}
+function accCur(){const a=accAll(),x=a[a.length-1];return x&&!x.end?x:null;}
+function accPut(A){lsSet(LS_PA,accAll().map(x=>x.id===A.id?A:x));}
+function pgBet(G,v){if(!(v>0))return;let A=accCur();if(!A){A={id:'u'+Date.now(),ts:Date.now(),paid:[]};lsSet(LS_PA,accAll().concat([A]));}G.bet=v;G.acc=A.id;}
+function pgPay(x,M){
+  if(!(x.bet>0))return null;let pl=x.pl,win;
+  if(x.mt&&x.mt.ft>1){if(!M||!M.win)return null;pl=M.pl;win=[M.win];}
+  else{const st=pgReplay(Object.assign({},x,{end:1}));win=st.rank.filter(r=>r.pl===1).map(r=>x.pl[r.p]);}
+  const d={},sh=x.bet*pl.length/win.length;pl.forEach(n=>d[n]=-x.bet);win.forEach(n=>d[n]+=sh);return {pl,win,d,bank:x.bet*pl.length};
+}
+function accCalc(A){
+  const k=n=>String(n).trim().toLowerCase(),P={},R=[],done={};
+  const pp=n=>P[k(n)]||(P[k(n)]={n:String(n).trim(),b:0,gw:0,g:0,w:0,paid:0});
+  lsGet(LS_PG,[]).filter(x=>x.acc===A.id&&x.bet>0).forEach(x=>{
+    let M=null;if(x.mt&&x.mt.ft>1){if(done[x.mt.id])return;M=pgMatch(Object.assign({},x,{id:'-'}),null);if(!M.win)return;done[x.mt.id]=1;}
+    const r=pgPay(x,M);if(!r)return;R.push({x,M,r});
+    r.pl.forEach(n=>{const q=pp(n);q.g++;q.b+=r.d[n];q.gw+=r.d[n];});r.win.forEach(n=>pp(n).w++);});
+  (A.paid||[]).forEach(p=>{const a=pp(p.f),b=pp(p.t);a.b+=p.v;b.b-=p.v;a.paid+=p.v;b.paid-=p.v;});
+  return {P:Object.values(P),R};
+}
+// kdo komu zaplatí: největší dlužník největšímu věřiteli (málo převodů)
+function accPlan(P){
+  const D=P.filter(q=>q.b<-.004).map(q=>({n:q.n,v:-q.b})).sort((a,b)=>b.v-a.v),C=P.filter(q=>q.b>.004).map(q=>({n:q.n,v:q.b})).sort((a,b)=>b.v-a.v),T=[];let i=0,j=0;
+  while(i<D.length&&j<C.length){const v=Math.min(D[i].v,C[j].v);T.push({f:D[i].n,t:C[j].n,v:Math.round(v*100)/100});D[i].v-=v;C[j].v-=v;if(D[i].v<.005)i++;if(C[j].v<.005)j++;}
+  return T;
+}
+// vyrovnání jednoho hráče, který odchází: zaplatí věřitelům / dostane od dlužníků (od největších částek)
+function accOne(P,n){
+  const k=String(n).trim().toLowerCase(),me=P.find(q=>q.n.toLowerCase()===k);if(!me||Math.abs(me.b)<.005)return [];
+  const out=me.b<0,O=P.filter(q=>q!==me&&(out?q.b>.004:q.b<-.004)).map(q=>({n:q.n,v:Math.abs(q.b)})).sort((a,b)=>b.v-a.v),T=[];let r=Math.abs(me.b);
+  O.forEach(o=>{if(r<.005)return;const v=Math.round(Math.min(r,o.v)*100)/100;r-=v;T.push(out?{f:me.n,t:o.n,v}:{f:o.n,t:me.n,v});});return T;
+}
+function trHtml(T){return T.map(t=>`<li><b>${esc(t.f)}</b> → <b>${esc(t.t)}</b>: <b>${kc(t.v)}</b></li>`).join('');}
+function payHtml(r){return r.pl.map(n=>`<span class="nw">${esc(n)} <b class="${r.d[n]>.004?'mplus':r.d[n]<-.004?'mminus':''}">${kcs(r.d[n])}</b></span>`).join(' · ');}
+function accHtml(){
+  const A=accCur(),old=accAll().filter(x=>x.end).slice(-5).reverse();let h='';
+  if(!A)h+=`<div class="card"><b>💰 Účet</b><p class="muted" style="margin:6px 0 0">Žádný otevřený účet. U nové hry zvol <b>Hra o peníze</b> (5–100 Kč) – první hra o peníze otevře účet herního dne. Každý vloží sázku a vítěz bere bank: ve třech o 50 Kč vítěz bere 150 Kč (50 je jeho, vydělá 100), ostatní přijdou o 50. Tady se pak průběžně počítá, kdo je v plusu a kdo v mínusu, a na konci kdo komu kolik zaplatí. Hráč, který odchází dřív, se může vyrovnat sám.</p></div>`;
+  else{
+    const {P,R}=accCalc(A),T=accPlan(P),key=n=>String(n).trim().toLowerCase();P.sort((a,b)=>b.b-a.b);
+    h+=`<div class="card scroll"><b>💰 Účet od ${fDL(A.ts)} ${fClk(A.ts)}</b> <span class="muted">· ${R.length} ${R.length===1?'hra':R.length>1&&R.length<5?'hry':'her'} o peníze</span>
+    ${P.length?`<table><thead><tr><th>Hráč</th><th>Teď</th><th></th><th>Ze her</th><th>Vyrovnáno</th><th>Her</th><th>Výher</th></tr></thead><tbody>${P.map(q=>{const c=pconf==='pa'+key(q.n),one=c?accOne(P,q.n):[];
+      return `<tr><td><b>${esc(q.n)}</b></td><td><b class="${q.b>.004?'mplus':q.b<-.004?'mminus':''}">${q.b<-.004?'zaplatí '+kc(-q.b):q.b>.004?'dostane '+kc(q.b):'vyrovnáno ✔'}</b></td>
+      <td>${Math.abs(q.b)<.005?'':c?`<button class="b sm" data-act="paok" data-n="${esc(q.n)}">✔ Zaplaceno</button> <button class="b ghost sm" data-act="pacan">Zpět</button>`:`<button class="b ghost sm" data-act="paone" data-n="${esc(q.n)}">🚪 Vyrovnat</button>`}</td><td class="${q.gw>.004?'mplus':q.gw<-.004?'mminus':''}">${kcs(q.gw)}</td><td>${q.paid>.004?'zaplatil '+kc(q.paid):q.paid<-.004?'dostal '+kc(-q.paid):'–'}</td><td>${q.g}</td><td>${q.w}</td></tr>${c?`<tr><td colspan="7" style="text-align:left;white-space:normal"><ul class="patr">${trHtml(one)}</ul><span class="muted">Po zaplacení ťukni na „✔ Zaplaceno“ – převody se zapíšou a ${esc(q.n)} má vyrovnáno.</span></td></tr>`:''}`;}).join('')}</tbody></table>`:'<p class="muted" style="margin:6px 0 0">Zatím žádná dohraná hra o peníze.</p>'}</div>`;
+    h+=`<div class="card"><b>Kdo komu zaplatí</b>${T.length?`<ul class="patr">${trHtml(T)}</ul>`:`<p class="muted" style="margin:6px 0 0">Všichni jsou vyrovnaní ✔</p>`}
+      <div class="row" style="margin-top:8px">${pconf==='paclose'?`<button class="b" data-act="paclose">✔ ${T.length?'Zaplaceno – uzavřít účet':'Uzavřít účet'}</button><button class="b ghost" data-act="pacan">Zpět</button>`:`<button class="b ghost" data-act="paask">🧾 Vyúčtovat a uzavřít účet</button>`}</div>
+      <p class="muted" style="margin:6px 0 0">Převody jsou spočítané tak, aby jich bylo co nejméně. Rozehraná hra a nedohraný zápas se nepočítají. Po uzavření začne další hra o peníze nový účet.</p></div>`;
+    if(R.length)h+=`<div class="card scroll"><b>Hry o peníze</b><table><thead><tr><th>Čas</th><th>Hra</th><th>Sázka</th><th style="text-align:left">Výsledek</th></tr></thead><tbody>${R.slice().reverse().map(({x,M,r})=>`<tr><td>${fClk(x.ts)}</td><td>${PG[x.game].n}${M?' <small class="muted">zápas '+M.w.join(':')+'</small>':''}</td><td>${kc(x.bet)}</td><td style="text-align:left;white-space:normal">${payHtml(r)}</td></tr>`).join('')}</tbody></table></div>`;
+    if((A.paid||[]).length)h+=`<div class="card"><b>Zapsaná vyrovnání</b><ul class="patr">${A.paid.map(t=>`<li>${fClk(t.ts)} · <b>${esc(t.f)}</b> → <b>${esc(t.t)}</b>: ${kc(t.v)}</li>`).join('')}</ul><button class="b ghost sm" data-act="paundo">↩ Zrušit poslední vyrovnání</button></div>`;
+  }
+  if(old.length)h+=`<div class="card scroll"><b>Uzavřené účty</b><table><thead><tr><th>Den</th><th style="text-align:left">Výsledek ze her</th></tr></thead><tbody>${old.map(a=>{const {P}=accCalc(a);P.sort((x,y)=>y.gw-x.gw);return `<tr><td>${fDL(a.ts)}</td><td style="text-align:left;white-space:normal">${P.map(q=>`${esc(q.n)} <b class="${q.gw>.004?'mplus':q.gw<-.004?'mminus':''}">${kcs(q.gw)}</b>`).join(' · ')||'–'}</td></tr>`;}).join('')}</tbody></table></div>`;
+  return h;
+}
 function mtHtml(M){return M.pl.length===2?`${esc(M.pl[0])} <b>${M.w[0]} : ${M.w[1]}</b> ${esc(M.pl[1])}`:M.pl.map((n,i)=>`${esc(n)} <b>${M.w[i]}</b>`).join(' · ');}
 // losování čísel slabší rukou (Killer): dokud nemají všichni číslo, hází se jen o čísla
 function pgPicking(){return !!(PGR&&PGR.nums&&PGR.nums.some(n=>n==null));}
@@ -1670,6 +1729,7 @@ function pgFinish(again){
   const M=st.over?pgMatch(G,st):null,leg=again==='leg'&&M&&!M.win,pl=G.pl.slice(1).concat(G.pl.slice(0,1));
   if(st.over){const H=lsGet(LS_PG,[]);H.push(Object.assign({},G,{darts:G.darts.slice(0,st.used),end:Date.now()}));lsSet(LS_PG,H.slice(-300));}
   PGR=again?pgNew(G.game,G.opt,pl,leg?G.mt:G.mt?{id:'m'+Date.now(),ft:G.mt.ft,pl:pl.slice()}:null):null;
+  if(PGR&&G.bet)pgBet(PGR,G.bet); // odveta / další hra zápasu o stejnou sázku
   pedit=null;pmul=1;plog=false;pgSave();render();
   if(st.over)flash('Hra uložena ✔'+(leg?' '+(M.leg+1)+'. hra zápasu – začíná '+PGR.pl[0]+'.':again?(G.mt?' Nový zápas':' Odveta')+' – začíná '+PGR.pl[0]+'.':''));
 }
@@ -1696,11 +1756,12 @@ function pgGameHtml(){
   const hold=phold&&!st.over&&!st.t&&st.T.length>0,ht=hold?st.T[st.T.length-1]:null,sv=hold?Object.assign({},st,{p:ht.p,rd:ht.rd}):st;
   const cur=hold?ht:st.t&&st.t.d.length?st.t:null,prev=st.T[st.T.length-(st.t||hold?2:1)]||null;
   let A='',K='',P='',L='';
-  const top=`<div class="row spread" style="margin:0 0 6px"><span class="muted">${M?`${M.leg}. hra · zápas ${ftLbl(M.ft)} · <span class="mts">${mtHtml(M)}</span>`:`${G.pl.length} ${G.pl.length<5?'hráči':'hráčů'}`}</span><span class="row"><button class="chip ${cfg.ad?'cur':''}" data-act="adtog" title="Zápis šipek z kamery Autodarts (Board Manager na tomto počítači)">🎯 Autodarts: <span id="adSt">${cfg.ad?adLbl():'vypnuto'}</span></button><button class="b ghost sm" data-act="pquit">✕ Zahodit hru</button></span></div>`;
+  const top=`<div class="row spread" style="margin:0 0 6px"><span class="muted">${M?`${M.leg}. hra · zápas ${ftLbl(M.ft)} · <span class="mts">${mtHtml(M)}</span>`:`${G.pl.length} ${G.pl.length<5?'hráči':'hráčů'}`}${G.bet?` · 💰 <b>o ${kc(G.bet)}</b>`:''}</span><span class="row"><button class="chip ${cfg.ad?'cur':''}" data-act="adtog" title="Zápis šipek z kamery Autodarts (Board Manager na tomto počítači)">🎯 Autodarts: <span id="adSt">${cfg.ad?adLbl():'vypnuto'}</span></button><button class="b ghost sm" data-act="pquit">✕ Zahodit hru</button></span></div>`;
   if(st.over){
     const w=st.rank.filter(x=>x.pl===1);
     A=`<div class="card verdict" style="text-align:center"><span class="lbl">Konec hry · ${g.n}</span><div class="big">🏆 ${w.map(x=>nm(x.p)).join(' + ')}</div><div class="muted">${w.length>1?'Remíza':'Vítěz'} · ${g.resH[0]} ${st.rank[0].s}</div></div>
     <div class="card scroll"><table><thead><tr><th>Pořadí</th><th>Hráč</th>${g.resH.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${st.rank.map(x=>`<tr><td>${x.pl}.</td><td>${nm(x.p)}</td>${g.res(st.pl[x.p]).map(v=>`<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    ${G.bet?(()=>{const r=pgPay(G,M);return `<div class="card" style="text-align:center"><span class="lbl">💰 Hra o ${kc(G.bet)}${r?' · bank '+kc(r.bank):''}</span><div class="pay">${r?payHtml(r):`hraje se o celý zápas – peníze se rozdělí po jeho rozhodnutí`}</div></div>`;})():''}
     ${M?`<div class="card mtc" style="text-align:center"><span class="lbl">Zápas ${ftLbl(M.ft)} · po ${M.leg}. hře</span><div class="mts">${mtHtml(M)}</div>${M.win?`<div class="big">🏆 ${esc(M.win)} vyhrává zápas</div>`:`<div class="muted">Další hru začíná ${nm(st.N>1?1:0)}.</div>`}</div>`:''}
     <div class="row" style="justify-content:center;margin:6px 0 12px">${M&&!M.win?`<button class="b start" data-act="pleg">▶ ${M.leg+1}. hra zápasu</button><button class="b" data-act="pdone">✔ Ukončit zápas</button>`:`<button class="b start" data-act="pagain">🔁 ${M?'Nový zápas':'Odveta'}</button><button class="b" data-act="pdone">✔ Uložit a zpět</button>`}<button class="b ghost" data-act="pundo">↩ Vrátit poslední šipku</button></div>`;
   }else{
@@ -1737,11 +1798,13 @@ function pgSetupHtml(){
   <div class="row" style="margin-top:8px"><button class="b ghost sm" data-act="padd"${pcfg.pl.length>=8?' disabled':''}>+ Přidat hráče</button><button class="b ghost sm" data-act="pshuf">🔀 Zamíchat pořadí</button></div></div>
   <div class="card"><b>Hra</b><div class="chips">${Object.keys(PG).map(k=>{const x=PG[k];return x.ok?`<button class="chip ${k===pcfg.game?'cur':''}" data-act="pgame" data-v="${k}">${x.n}</button>`:`<span class="chip" style="opacity:.4" title="Připravujeme">${x.n}</span>`;}).join('')}</div>
   <p class="muted" style="margin:4px 0"><b>${g.n}</b>: ${g.desc}</p>
-  <label class="row" style="margin:6px 0"><span><b>Zápas</b></span><select data-pft>${[1,2,3,4,5,7].map(v=>`<option value="${v}"${v===(pcfg.ft||1)?' selected':''}>${v>1?ftLbl(v)+' hry':'jedna hra'}</option>`).join('')}</select></label>
+  <label class="row" style="margin:6px 0"><span><b>💰 Hra o peníze</b></span><select data-pbet>${[0,5,10,20,50,100].map(v=>`<option value="${v}"${v===(pcfg.bet||0)?' selected':''}>${v?'o '+v+' Kč':'bez peněz'}</option>`).join('')}</select></label>
+  ${pcfg.bet>0?`<p class="muted" style="margin:0 0 6px">Každý vloží ${kc(pcfg.bet)}, vítěz bere bank (${kc(pcfg.bet*pcfg.pl.length)}).${(pcfg.ft||1)>1?' U zápasu se hraje o celý zápas.':''} Kdo komu kolik dluží, ukáže <b>💰 Účet</b>.</p>`:''}
+  <label class="row" style="margin:6px 0"><span><b>Zápas</b></span><select data-pft>${[1,2,3,4,5,7].map(v=>`<option value="${v}"${v===(pcfg.ft||1)?' selected':''}>${v>1?ftLbl(v)+(v<5?' hry':' her'):'jedna hra'}</option>`).join('')}</select></label>
   ${Object.keys(g.opt||{}).map(q=>`<label class="row" style="margin:6px 0"><span>${g.opt[q].l}</span><select data-popt="${q}">${g.opt[q].v.map(v=>`<option value="${v}"${v===o[q]?' selected':''}>${g.opt[q].t?g.opt[q].t[v]:v}</option>`).join('')}</select></label>`).join('')}
   </div></div>
   <div><div class="card" style="text-align:center"><button class="b start" data-act="pstart" style="width:100%"${g.minP&&pcfg.pl.length<g.minP||g.maxP&&pcfg.pl.length>g.maxP?' disabled':''}>▶ Hrát: ${g.n}</button>${g.minP&&pcfg.pl.length<g.minP||g.maxP&&pcfg.pl.length>g.maxP?`<p class="note" style="margin:8px 0 0">${g.n} je pro ${g.minP===g.maxP?'přesně '+g.minP:'aspoň '+g.minP} hráče – uprav seznam hráčů.</p>`:''}<p class="muted" style="margin:8px 0 0">Všichni hází u jednoho terče, po 3 šipkách se střídá hráč. Šipky se zadávají na klávesnici Single / Double / Triple a číslo. S Autodarts se zapíšou samy a špatně přečtenou šipku opravíš ťuknutím na ni. Párty hry se ukládají jen v tomto zařízení a do statistik doublů se nepočítají.</p></div>`;
-  if(H.length)h+=`<div class="card scroll"><b>Odehrané hry</b><table><thead><tr><th>Datum</th><th>Hra</th><th style="text-align:left">Pořadí</th><th></th></tr></thead><tbody>${H.slice().reverse().slice(0,30).map(x=>{const rk=pgReplay(Object.assign({},x,{end:1})).rank;return `<tr><td>${fDL(x.ts)}</td><td>${PG[x.game].n}${x.mt&&x.mt.ft>1?' <small class="muted">(zápas)</small>':''}</td><td style="text-align:left;white-space:normal">${rk.map(r=>`${r.pl}. ${r.pl===1?'🏆 ':''}${esc(x.pl[r.p])} <b>${r.s}</b>`).join(' · ')}</td><td>${pconf==='h'+x.id?`<button class="b sm" data-act="phdel" data-id="${esc(x.id)}">Smazat</button>`:`<button class="b ghost sm" data-act="phask" data-id="${esc(x.id)}" aria-label="Smazat hru">✕</button>`}</td></tr>`;}).join('')}</tbody></table></div>`;
+  if(H.length)h+=`<div class="card scroll"><b>Odehrané hry</b><table><thead><tr><th>Datum</th><th>Hra</th><th style="text-align:left">Pořadí</th><th></th></tr></thead><tbody>${H.slice().reverse().slice(0,30).map(x=>{const rk=pgReplay(Object.assign({},x,{end:1})).rank;return `<tr><td>${fDL(x.ts)}</td><td>${PG[x.game].n}${x.mt&&x.mt.ft>1?' <small class="muted">(zápas)</small>':''}${x.bet?' <small class="muted">💰 '+x.bet+'</small>':''}</td><td style="text-align:left;white-space:normal">${rk.map(r=>`${r.pl}. ${r.pl===1?'🏆 ':''}${esc(x.pl[r.p])} <b>${r.s}</b>`).join(' · ')}</td><td>${pconf==='h'+x.id?`<button class="b sm" data-act="phdel" data-id="${esc(x.id)}">Smazat</button>`:`<button class="b ghost sm" data-act="phask" data-id="${esc(x.id)}" aria-label="Smazat hru">✕</button>`}</td></tr>`;}).join('')}</tbody></table></div>`;
   return h+`</div></div>`;
 }
 // statistika párty her za zvolené období (vše se počítá z uložených šipek); hráč = jméno bez ohledu na velikost písmen
@@ -1800,7 +1863,7 @@ function pgStatsHtml(){
 }
 function renderParty(){
   if(PGR)return pgGameHtml();
-  return `<div class="chips" style="margin:0 0 10px"><button class="chip ${pview==='new'?'cur':''}" data-act="pview" data-v="new">🎯 Nová hra</button><button class="chip ${pview==='stats'?'cur':''}" data-act="pview" data-v="stats">📊 Statistiky</button></div>`+(pview==='stats'?pgStatsHtml():pgSetupHtml());
+  return `<div class="chips" style="margin:0 0 10px"><button class="chip ${pview==='new'?'cur':''}" data-act="pview" data-v="new">🎯 Nová hra</button><button class="chip ${pview==='stats'?'cur':''}" data-act="pview" data-v="stats">📊 Statistiky</button><button class="chip ${pview==='acc'?'cur':''}" data-act="pview" data-v="acc">💰 Účet</button></div>`+(pview==='stats'?pgStatsHtml():pview==='acc'?accHtml():pgSetupHtml());
 }
 
 /* ---------- grafy ---------- */
@@ -2482,7 +2545,7 @@ document.addEventListener('click',async e=>{
     case 'pup':{const i=+t.dataset.i;if(i>0){[pcfg.pl[i-1],pcfg.pl[i]]=[pcfg.pl[i],pcfg.pl[i-1]];pcSave();}break;}
     case 'pshuf':{const q=pcfg.pl;for(let i=q.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[q[i],q[j]]=[q[j],q[i]];}pcSave();break;}
     case 'pgame':if(PG[t.dataset.v]&&PG[t.dataset.v].ok){pcfg.game=t.dataset.v;pcSave();}break;
-    case 'pstart':{const g=PG[pcfg.game],n=pcfg.pl.length;if(g.minP&&n<g.minP||g.maxP&&n>g.maxP){flash(g.n+': potřebuje '+(g.minP===g.maxP?'přesně '+g.minP:'aspoň '+g.minP)+' hráče.');return;}}PGR=pgNew(pcfg.game,pgOpt(pcfg.game),pcfg.pl.slice(),pcfg.ft>1?{id:'m'+Date.now(),ft:pcfg.ft,pl:pcfg.pl.slice()}:null);pmul=1;pedit=null;plog=false;pgSave();break;
+    case 'pstart':{const g=PG[pcfg.game],n=pcfg.pl.length;if(g.minP&&n<g.minP||g.maxP&&n>g.maxP){flash(g.n+': potřebuje '+(g.minP===g.maxP?'přesně '+g.minP:'aspoň '+g.minP)+' hráče.');return;}}PGR=pgNew(pcfg.game,pgOpt(pcfg.game),pcfg.pl.slice(),pcfg.ft>1?{id:'m'+Date.now(),ft:pcfg.ft,pl:pcfg.pl.slice()}:null);pgBet(PGR,pcfg.bet);pmul=1;pedit=null;plog=false;pgSave();break;
     case 'pquit':if(!PGR.darts.length||t.dataset.sure){PGR=null;pedit=null;pgSave();}else{t.dataset.sure='1';t.textContent='Opravdu zahodit?';return;}break;
     case 'pagain':pgFinish(true);return;
     case 'pleg':pgFinish('leg');return;
@@ -2499,7 +2562,13 @@ document.addEventListener('click',async e=>{
     case 'pman':pman=!pman;break;
     case 'pnext':phold=false;break;
     case 'plog':plog=!plog;break;
-    case 'pview':pview=t.dataset.v;break;
+    case 'pview':pview=t.dataset.v;pconf=null;break;
+    case 'paone':pconf='pa'+String(t.dataset.n).trim().toLowerCase();break;
+    case 'pacan':pconf=null;break;
+    case 'paask':pconf='paclose';break;
+    case 'paok':{const A=accCur();if(A){const T=accOne(accCalc(A).P,t.dataset.n),ts=Date.now();A.paid=(A.paid||[]).concat(T.map(x=>Object.assign(x,{ts})));accPut(A);flash('✔ '+t.dataset.n+' má vyrovnáno.');}pconf=null;break;}
+    case 'paundo':{const A=accCur();if(A&&A.paid&&A.paid.length){const ts=A.paid[A.paid.length-1].ts;A.paid=A.paid.filter(x=>x.ts!==ts);accPut(A);}break;}
+    case 'paclose':{const A=accCur();if(A){const ts=Date.now();A.paid=(A.paid||[]).concat(accPlan(accCalc(A).P).map(x=>Object.assign(x,{ts})));A.end=ts;accPut(A);flash('🧾 Účet uzavřen ✔');}pconf=null;break;}
     case 'pgf':pgf=t.dataset.v;break;
     case 'pper':pper=t.dataset.v;if(pper==='from'&&!pfrom)pfrom=dayKey(Date.now()-6*864e5);break;
     case 'phask':pconf='h'+t.dataset.id;break;
@@ -2548,7 +2617,8 @@ document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset&&t.dataset.pn!==undefined){const i=+t.dataset.pn;pcfg.pl[i]=t.value.trim().slice(0,16)||('Hráč '+(i+1));pcSave();return;}
   if(t.dataset&&t.dataset.pfrom!==undefined){pfrom=t.value;render();return;}
-  if(t.dataset&&t.dataset.pft!==undefined){pcfg.ft=+t.value||1;pcSave();return;}
+  if(t.dataset&&t.dataset.pft!==undefined){pcfg.ft=+t.value||1;pcSave();render();return;}
+  if(t.dataset&&t.dataset.pbet!==undefined){pcfg.bet=+t.value||0;pcSave();render();return;}
   if(t.dataset&&t.dataset.popt!==undefined){(pcfg.opt[pcfg.game]=pcfg.opt[pcfg.game]||{})[t.dataset.popt]=isNaN(+t.value)?t.value:+t.value;pcSave();return;}
   if(t.dataset&&t.dataset.wn!==undefined){cfg.wn=+t.value;lsSet('darts_cfg',cfg);}
   if(t.dataset&&t.dataset.omode!==undefined){cfg.omode=t.value;lsSet('darts_cfg',cfg);render();}
