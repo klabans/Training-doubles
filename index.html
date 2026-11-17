@@ -6,6 +6,7 @@
 <title>Klaboš Doubles Trénink</title>
 <style>
 :root{
+  --adok:#1fcb62;--adbad:#e5202e;
   color-scheme:light;
   --bg:#fcfcfb;--card:#f4f3f0;--line:#e2e1dc;--grid:#e9e8e4;
   --tx:#0b0b0b;--tx2:#52514e;--tx3:#6b6a66;
@@ -84,6 +85,12 @@ select{font:inherit;padding:8px 10px;border-radius:8px;background:var(--card);co
 @keyframes celepop{0%{transform:scale(.2) rotate(-8deg)}100%{transform:scale(1)}}
 @keyframes celein{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){.cele,.cele b{animation:none}.cele i{display:none}}
+/* stav Autodarts: aura kolem terče */
+body.ad-ok .bwrap .bsvg,body.ad-bad .bwrap .bsvg{border-radius:50%}
+body.ad-ok .bwrap .bsvg{box-shadow:0 0 0 2px color-mix(in srgb,var(--adok) 70%,transparent),0 0 12px 2px color-mix(in srgb,var(--adok) 35%,transparent),0 0 40px 10px color-mix(in srgb,var(--adok) 16%,transparent)}
+body.ad-bad .bwrap .bsvg{box-shadow:0 0 0 2px color-mix(in srgb,var(--adbad) 75%,transparent),0 0 10px 1px color-mix(in srgb,var(--adbad) 40%,transparent);animation:adbad 1.6s ease-in-out infinite}
+@keyframes adbad{50%{box-shadow:0 0 0 2px color-mix(in srgb,var(--adbad) 35%,transparent),0 0 2px 0 transparent}}
+@media (prefers-reduced-motion:reduce){body.ad-bad .bwrap .bsvg{animation:none}}
 @keyframes sbpop{0%{transform:scale(1.15)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.sb .pop{animation:none}}
 @media (max-width:600px){.sb.n4{grid-template-columns:repeat(2,1fr)}}
@@ -818,7 +825,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 09:40';
+const BUILD='verze 17. 11. 2026, 09:51';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1055,20 +1062,25 @@ function adPos(th){return th.coordsX==null||th.coordsY==null?'':'@'+(+th.coordsX
 function ptsEnc(L){return L.filter(d=>d.p).map(d=>d.t+(d.h?'h':'m')+d.p).join(';');}
 function ptsDec(q){return String(q||'').split(';').map(z=>{const m=/^(\d+)([hm])@(-?[\d.]+),(-?[\d.]+)$/.exec(z);return m?{t:+m[1],h:m[2]==='h',x:+m[3],y:+m[4]}:null;}).filter(Boolean);}
 function adUrl(){return cfg.adUrl||'ws://localhost:3180/api/events';}
-function adLbl(){return {off:'vypnuto',con:'připojuji…',on:'připojeno',err:'nepřipojeno'}[AD.st];}
-function adSet(v){AD.st=v;const e=document.getElementById('adSt');if(e)e.textContent=adLbl();}
+function adLbl(){return {off:'vypnuto',con:'připojuji…',on:'počítá',stop:'zastaveno – nepočítá',err:'nepřipojeno'}[AD.st];}
+function adSet(v){AD.st=v;const e=document.getElementById('adSt');if(e)e.textContent=adLbl();adBody();}
+// aura kolem terče: zelená = kamera počítá, červená (bliká) = odpojeno nebo Autodarts zastavený/pozastavený (bez překreslení obrazovky)
+function adBody(){const b=document.body.classList,ok=!!cfg.ad&&AD.st==='on';b.toggle('ad-ok',ok);b.toggle('ad-bad',!!cfg.ad&&!ok);}
+// stav Board Manageru: running=false / connected=false / status stop|pause = nepočítá
+function adRun(d){if(!d||!AD.ws||AD.ws.readyState!==1)return;const bad=d.running===false||d.connected===false||/stop|paus/i.test(String(d.status||''));const v=bad?'stop':'on';if(AD.st!==v)adSet(v);}
+function adStateUrl(){return adUrl().replace(/^ws/,'http').replace(/\/api\/events.*$/,'/api/state');}
 function adConnect(){
   clearTimeout(AD.tm);if(!cfg.ad){adStop();return;}
   if(AD.ws&&AD.ws.readyState<2)return;
   adSet('con');let w;try{w=new WebSocket(adUrl());}catch(e){adSet('err');AD.tm=setTimeout(adConnect,5000);return;}
   AD.ws=w;AD.n=-1;AD.vis=[];
-  w.onopen=()=>{if(AD.ws===w){adSet('on');adBase(w);}};
-  w.onclose=()=>{if(AD.ws!==w)return;AD.ws=null;if(cfg.ad){adSet('err');AD.tm=setTimeout(adConnect,3000);}else adSet('off');};
-  w.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch(x){return;}const d=m&&m.type==='state'?m.data:m;if(d&&Array.isArray(d.throws))adState(d);};
+  w.onopen=()=>{if(AD.ws===w){adSet('on');adBase(w);clearInterval(AD.pt);AD.pt=setInterval(()=>{if(AD.ws!==w){clearInterval(AD.pt);return;}fetch(adStateUrl()).then(r=>r.json()).then(adRun).catch(()=>{});},3000);}};
+  w.onclose=()=>{if(AD.ws!==w)return;AD.ws=null;clearInterval(AD.pt);if(cfg.ad){adSet('err');AD.tm=setTimeout(adConnect,3000);}else adSet('off');};
+  w.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch(x){return;}const d=m&&m.type==='state'?m.data:m;if(d&&typeof d==='object')adRun(d);if(d&&Array.isArray(d.throws))adState(d);};
 }
 // výchozí počet šipek v terči při připojení z GET /api/state (websocket nemusí poslat stav hned, jinak by se první šipka ztratila)
-function adBase(w){try{fetch(adUrl().replace(/^ws/,'http').replace(/\/api\/events.*$/,'/api/state')).then(r=>r.json()).then(s=>{if(AD.ws===w&&AD.n<0&&s&&Array.isArray(s.throws))AD.n=s.throws.length;}).catch(()=>{});}catch(e){}}
-function adStop(){clearTimeout(AD.tm);const w=AD.ws;AD.ws=null;if(w)try{w.close();}catch(e){}adSet('off');}
+function adBase(w){try{fetch(adStateUrl()).then(r=>r.json()).then(s=>{if(AD.ws!==w)return;adRun(s);if(AD.n<0&&s&&Array.isArray(s.throws))AD.n=s.throws.length;}).catch(()=>{});}catch(e){}}
+function adStop(){clearTimeout(AD.tm);clearInterval(AD.pt);const w=AD.ws;AD.ws=null;if(w)try{w.close();}catch(e){}adSet('off');}
 function adState(d){
   const L=d.throws.length;
   // první zpráva bez známého výchozího stavu: při hodu je nová jen poslední šipka, jinak je to jen stav (šipky v terči se nepočítají)
