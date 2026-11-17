@@ -810,7 +810,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 09:05';
+const BUILD='verze 17. 11. 2026, 09:10';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1054,14 +1054,17 @@ function adConnect(){
   if(AD.ws&&AD.ws.readyState<2)return;
   adSet('con');let w;try{w=new WebSocket(adUrl());}catch(e){adSet('err');AD.tm=setTimeout(adConnect,5000);return;}
   AD.ws=w;AD.n=-1;AD.vis=[];
-  w.onopen=()=>{if(AD.ws===w)adSet('on');};
+  w.onopen=()=>{if(AD.ws===w){adSet('on');adBase(w);}};
   w.onclose=()=>{if(AD.ws!==w)return;AD.ws=null;if(cfg.ad){adSet('err');AD.tm=setTimeout(adConnect,3000);}else adSet('off');};
   w.onmessage=e=>{let m;try{m=JSON.parse(e.data);}catch(x){return;}const d=m&&m.type==='state'?m.data:m;if(d&&Array.isArray(d.throws))adState(d);};
 }
+// výchozí počet šipek v terči při připojení z GET /api/state (websocket nemusí poslat stav hned, jinak by se první šipka ztratila)
+function adBase(w){try{fetch(adUrl().replace(/^ws/,'http').replace(/\/api\/events.*$/,'/api/state')).then(r=>r.json()).then(s=>{if(AD.ws===w&&AD.n<0&&s&&Array.isArray(s.throws))AD.n=s.throws.length;}).catch(()=>{});}catch(e){}}
 function adStop(){clearTimeout(AD.tm);const w=AD.ws;AD.ws=null;if(w)try{w.close();}catch(e){}adSet('off');}
 function adState(d){
   const L=d.throws.length;
-  if(AD.n<0){AD.n=L;return;} // šipky, které už v terči byly při připojení, se nepočítají
+  // první zpráva bez známého výchozího stavu: při hodu je nová jen poslední šipka, jinak je to jen stav (šipky v terči se nepočítají)
+  if(AD.n<0){if(d.event==='throwDetected'&&L>0)AD.n=L-1;else{AD.n=L;return;}}
   if(L<AD.n){if(pgOn())pgTakeout();else{adPad(AD.n);adBob();adCxTakeout();}AD.n=0;AD.vis=[];AD.old=true;}
   if(L>AD.n){const nw=d.throws.slice(AD.n);AD.n=L;nw.forEach(th=>{if(pgOn()){pgAd(th);return;}adMark(th);adThrow(th);AD.cur=null;});}
 }
