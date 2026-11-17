@@ -199,7 +199,7 @@ button.dt{cursor:pointer}
 .pgdate{font:inherit;font-size:15px;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--tx);min-height:38px}
 .pgd.pgd3{grid-template-columns:repeat(3,1fr)}
 .pged{border:2px solid var(--s2);border-radius:12px;padding:10px;margin:0 0 10px;background:var(--card)}
-.pgprev{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
+.pgprev{min-height:38px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
 .pgprev .chip{font-size:16px;padding:5px 10px}
 .pgp{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:0 0 10px}
 .pgp .tile{min-width:0;text-align:center;padding:8px}
@@ -810,7 +810,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 09:15';
+const BUILD='verze 17. 11. 2026, 09:20';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1179,7 +1179,7 @@ function cxHtml(id,R,done){
     <div><span class="lbl">Zbývá</span> <span class="big">${rem}</span></div>
     ${x&&x.th.length?`<div class="muted">${vis(x).map((v,i)=>'kolo '+(i+1)+': <b>'+v+'</b>').join('<br>')}</div>`:'<div class="muted">Házej, hody se zapíšou samy.</div>'}
     ${x&&x.wait?'<div class="muted"><b>Přetaženo</b> – vytáhni šipky, pokračuje se dalším kolem.</div>':''}
-    ${x&&rem!==t?routeHtml(rem):''}${adMarks()?`<div class="bwrap" style="width:min(240px,64vw)"><div class="bsvg">${makeBoard()}</div>${adBoard(adMarks())}</div>`:''}</div>`;
+    ${x&&rem!==t?routeHtml(rem):''}<div class="bwrap" style="width:min(240px,64vw)"><div class="bsvg">${makeBoard()}</div>${adBoard(adMarks())}</div></div>`;
   return h;
 }
 function addC(d,ok){if(replay(run.darts).c.length>=run.cn)return;commit('c:'+d+':'+(ok?1:0));}
@@ -1339,11 +1339,14 @@ function pgGameHtml(){
     const cells=g.cells(sv,G),n=cells.length+2,td=hold?ht.d:st.t?st.t.d:[];
     A=`<div class="sb${n===4?' n4':''}" style="--n:${n}"><div class="tile nm" style="grid-column:span 2"><span class="lbl">${hold?'Dohozeno':'Hází'}</span><span class="v">${nm(sv.p)}</span></div>${cells.map(c=>`<div class="tile"><span class="lbl">${c.lbl}</span><span class="v">${c.v}</span></div>`).join('')}</div>`;
     A+=`<div class="pgd">${[0,1,2].map(k=>{const d=td[k];return d?`<button class="dt${pedit===d.i?' ed':''}" data-act="pedit" data-i="${d.i}" title="Ťukni pro opravu"><b>${pgLbl(d)}</b><small>${d.fix?'opraveno':d.v+' b.'}</small></button>`:`<div class="dt nx${k===td.length?' now':''}"><b>–</b><small>šipka ${k+1}</small></div>`;}).join('')}<div class="dt tot"><b>${sum({d:td})}</b><small>tah</small></div></div>`;
-    if(hold)A+=`<div class="note row spread" style="margin:0 0 10px"><span>🎯 Vytáhni šipky – pak hází <b>${nm(st.p)}</b>.</span><button class="b sm" data-act="pnext">Další hráč ▶</button></div>`;
+    // s kamerou drží výzva k vytažení místo pořád (skrytá), aby obsah pod ní neposkakoval
+    if(hold||cfg.ad)A+=`<div class="note row spread" style="margin:0 0 10px${hold?'':';visibility:hidden'}"${hold?'':' aria-hidden="true"'}><span>🎯 Vytáhni šipky – pak hází <b>${nm(st.p)}</b>.</span><button class="b sm" data-act="pnext"${hold?'':' tabindex="-1"'}>Další hráč ▶</button></div>`;
   }
+  if(!prev&&!st.over)A+=`<div class="pgprev"></div>`; // místo pro předchozí tah, ať se obrazovka po 1. tahu neposune
   if(prev)A+=`<div class="pgprev"><span class="muted">${st.over?'Poslední':'Předchozí'} tah · <b>${nm(prev.p)}</b>:</span>${prev.d.map(pgChip).join('')}<span class="muted">= ${sum(prev)}</span></div>`;
   const mt=cur&&cur.d.some(d=>d.x!=null)?cur:null; // značky jen pro rozehraný / dohozený tah, po vytažení zmizí
-  const BD=!mt?'':`<div class="muted" style="text-align:center">Kam šly šipky – ${mt===cur?'tento tah':esc(G.pl[mt.p])+' (předchozí tah)'}</div><div class="bwrap" style="width:min(240px,60vw)"><div class="bsvg">${makeBoard()}</div>${adBoard(dartMarks(mt.d.map(d=>({x:d.x,y:d.y,h:d.v>0}))))}</div>`;
+  // s kamerou je terč vidět pořád (stabilní obrazovka), mění se jen značky šipek
+  const BD=!(cfg.ad||mt)?'':`<div class="muted" style="text-align:center">Kam šly šipky</div><div class="bwrap" style="width:min(240px,60vw)"><div class="bsvg">${makeBoard()}</div>${mt?adBoard(dartMarks(mt.d.map(d=>({x:d.x,y:d.y,h:d.v>0})))):''}</div>`;
   if(!st.over||pedit!=null)K=pgKeys(st);
   if(!st.over)P=`<div class="pgp">${G.pl.map((n,i)=>{const x=g.tile(st.pl[i],st,G,i);return `<div class="tile${i===sv.p?' cur':''}"><span class="lbl">${esc(n)}</span><span class="v">${x.v}</span><small>${x.sub}</small></div>`;}).join('')}</div>`;
   if(st.T.length)L=`<div class="card"><button class="howbtn" data-act="plog">${plog?'▾':'▸'} Průběh hry (${st.T.length} ${st.T.length===1?'tah':st.T.length<5?'tahy':'tahů'}) – ťuknutím na šipku ji opravíš</button>${plog?st.T.slice().reverse().map(t=>`<div class="pgprev"><span class="muted">kolo ${t.rd} · <b>${nm(t.p)}</b>:</span>${t.d.map(pgChip).join('')}<span class="muted">= ${sum(t)}</span></div>`).join(''):''}</div>`;
