@@ -243,7 +243,11 @@ button.dt{cursor:pointer}
 .pgd.pgd3{grid-template-columns:repeat(3,1fr)}
 .pged{border:2px solid var(--s2);border-radius:12px;padding:10px;margin:0 0 10px;background:var(--card)}
 .mts b{color:var(--s1);font-variant-numeric:tabular-nums}.mtc .mts{font-size:clamp(22px,6vw,34px);font-weight:900;margin:4px 0}
-.nw{white-space:nowrap}.pgpl .pgon{width:22px;height:22px;flex:none;accent-color:var(--s1);margin:0}.pgpl.off input[type=text],.pgpl.off .pgno{opacity:.45}.pgpl small{font-weight:700}.pgpl .pgbal{min-width:62px;text-align:right}.mplus{color:var(--s1)}.mminus{color:var(--s2)}.patr{margin:6px 0 0;padding-left:20px}.patr li{margin:2px 0}.pay{font-size:clamp(17px,4.5vw,22px);margin-top:4px}
+.nw{white-space:nowrap}
+/* volby párty hry ve sloupcích, ať je vše na jedné obrazovce */
+.pgo{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px 12px;margin:8px 0}
+.pgo .pgf{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:14px;line-height:1.2}
+.pgo .pgf select{width:100%;min-width:0}.pgpl .pgon{width:22px;height:22px;flex:none;accent-color:var(--s1);margin:0}.pgpl.off input[type=text],.pgpl.off .pgno{opacity:.45}.pgpl small{font-weight:700}.pgpl .pgbal{min-width:62px;text-align:right}.mplus{color:var(--s1)}.mminus{color:var(--s2)}.patr{margin:6px 0 0;padding-left:20px}.patr li{margin:2px 0}.pay{font-size:clamp(17px,4.5vw,22px);margin-top:4px}
 .pgprev{min-height:38px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
 .pgprev .chip{font-size:16px;padding:5px 10px}
 .pgp{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:0 0 10px}
@@ -873,7 +877,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 20:36';
+const BUILD='verze 17. 11. 2026, 21:10';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1603,6 +1607,7 @@ let pcfg=lsGet(LS_PC,null)||{pl:['Hráč 1','Hráč 2'],game:'cu',opt:{}};if(!pc
 // soupiska až 16 jmen; hrají jen zaškrtnutí (pcfg.off = jména malými písmeny, která teď nehrají), nejvýš 8
 function pkey(n){return String(n).trim().toLowerCase();}
 function pAct(){return pcfg.pl.filter(n=>!pcfg.off.includes(pkey(n)));}if(!(PG[pcfg.game]&&PG[pcfg.game].ok))pcfg.game='cu';
+let pdesc=false; // pravidla hry v nastavení rozbalená
 let PGR=lsGet(LS_PD,null),pmul=1,pedit=null,plog=false,pconf=null,pscroll=false,pman=false,phold=false;
 if(PGR&&!(PG[PGR.game]&&PG[PGR.game].ok&&Array.isArray(PGR.darts)))PGR=null;
 function pgSave(){if(PGR)lsSet(LS_PD,PGR);else lsDel(LS_PD);}
@@ -1854,12 +1859,14 @@ function pgSetupHtml(){
   ${pcfg.pl.map((n,i)=>{const on=!pcfg.off.includes(pkey(n)),b=BAL[pkey(n)];return `<div class="row pgpl${on?'':' off'}"><input type="checkbox" class="pgon" data-pon="${i}"${on?' checked':''} aria-label="${esc(n)} hraje"><span class="pgno">${i+1}.</span><input type="text" maxlength="16" value="${esc(n)}" data-pn="${i}" aria-label="Jméno hráče ${i+1}"><button class="b ghost sm" data-act="pup" data-i="${i}"${i?'':' disabled'} aria-label="Posunout výš">↑</button><button class="b ghost sm" data-act="pdel" data-i="${i}"${pcfg.pl.length>1?'':' disabled'} aria-label="Odebrat hráče">✕</button>${AC?`<small class="${b>.004?'mplus':b<-.004?'mminus':'muted'} nw pgbal" title="Účet herního dne">${b!=null&&Math.abs(b)>.004?kcs(b):'–'}</small>`:''}</div>`;}).join('')}
   <div class="row" style="margin-top:8px"><button class="b ghost sm" data-act="padd"${pcfg.pl.length>=16?' disabled':''}>+ Přidat hráče</button><button class="b ghost sm" data-act="pshuf">🔀 Zamíchat pořadí</button></div></div>
   <div class="card"><b>Hra</b><div class="chips">${Object.keys(PG).map(k=>{const x=PG[k];return x.ok?`<button class="chip ${k===pcfg.game?'cur':''}" data-act="pgame" data-v="${k}">${x.n}</button>`:`<span class="chip" style="opacity:.4" title="Připravujeme">${x.n}</span>`;}).join('')}</div>
-  <p class="muted" style="margin:4px 0"><b>${g.n}</b>: ${g.desc}</p>
-  <label class="row" style="margin:6px 0"><span><b>💰 Hra o peníze</b></span><select data-pbet>${[0,5,10,20,50,100].map(v=>`<option value="${v}"${v===(pcfg.bet||0)?' selected':''}>${v?'o '+v+' Kč':'bez peněz'}</option>`).join('')}</select></label>
+  <p class="muted" style="margin:6px 0"><button class="b ghost sm" data-act="pdesc" aria-expanded="${pdesc}">📖 Pravidla – ${g.n} ${pdesc?'▲':'▼'}</button>${pdesc?`<br>${g.desc}`:''}</p>
+  <div class="pgo">
+  <label class="pgf"><span><b>💰 Hra o peníze</b></span><select data-pbet>${[0,5,10,20,50,100].map(v=>`<option value="${v}"${v===(pcfg.bet||0)?' selected':''}>${v?'o '+v+' Kč':'bez peněz'}</option>`).join('')}</select></label>
+  ${pcfg.game==='xo'?`<label class="pgf"><span><b>Sety</b></span><select data-psets>${[0,2,3,4,5].map(v=>`<option value="${v}"${v===(pcfg.sets||0)?' selected':''}>${v?'na '+v+' vítězn'+(v<5?'é sety':'ých setů'):'bez setů'}</option>`).join('')}</select></label>`:''}
+  <label class="pgf"><span><b>${pcfg.game==='xo'?(pcfg.sets>1?'Legy v setu':'Legy'):'Zápas'}</b></span><select data-pft>${[1,2,3,4,5,7].map(v=>`<option value="${v}"${v===(pcfg.ft||1)?' selected':''}>${pcfg.game==='xo'?(v>1?ftLbl(v)+(v<5?' legy':' legů'):'1 leg'):v>1?ftLbl(v)+(v<5?' hry':' her'):'jedna hra'}</option>`).join('')}</select></label>
+  ${Object.keys(g.opt||{}).map(q=>`<label class="pgf"><span>${g.opt[q].l}</span><select data-popt="${q}">${g.opt[q].v.map(v=>`<option value="${v}"${v===o[q]?' selected':''}>${g.opt[q].t?g.opt[q].t[v]:v}</option>`).join('')}</select></label>`).join('')}
+  </div>
   ${pcfg.bet>0?`<p class="muted" style="margin:0 0 6px">Každý vloží ${kc(pcfg.bet)}, vítěz bere bank (${kc(pcfg.bet*act.length)}).${(pcfg.ft||1)>1?' U zápasu se hraje o celý zápas.':''} Kdo komu kolik dluží, ukáže <b>💰 Účet</b>.</p>`:''}
-  ${pcfg.game==='xo'?`<label class="row" style="margin:6px 0"><span><b>Sety</b></span><select data-psets>${[0,2,3,4,5].map(v=>`<option value="${v}"${v===(pcfg.sets||0)?' selected':''}>${v?'na '+v+' vítězn'+(v<5?'é sety':'ých setů'):'bez setů'}</option>`).join('')}</select></label>`:''}
-  <label class="row" style="margin:6px 0"><span><b>${pcfg.game==='xo'?(pcfg.sets>1?'Legy v setu':'Legy'):'Zápas'}</b></span><select data-pft>${[1,2,3,4,5,7].map(v=>`<option value="${v}"${v===(pcfg.ft||1)?' selected':''}>${pcfg.game==='xo'?(v>1?ftLbl(v)+(v<5?' legy':' legů'):'1 leg'):v>1?ftLbl(v)+(v<5?' hry':' her'):'jedna hra'}</option>`).join('')}</select></label>
-  ${Object.keys(g.opt||{}).map(q=>`<label class="row" style="margin:6px 0"><span>${g.opt[q].l}</span><select data-popt="${q}">${g.opt[q].v.map(v=>`<option value="${v}"${v===o[q]?' selected':''}>${g.opt[q].t?g.opt[q].t[v]:v}</option>`).join('')}</select></label>`).join('')}
   </div></div>
   <div><div class="card" style="text-align:center">${(()=>{const n=act.length,bad=!n||g.minP&&n<g.minP||g.maxP&&n>g.maxP;return `<button class="b start" data-act="pstart" style="width:100%"${bad?' disabled':''}>▶ Hrát: ${g.n}</button><p class="muted" style="margin:6px 0 0">Hrají: <b>${act.map(esc).join(', ')||'nikdo'}</b></p>${bad?`<p class="note" style="margin:8px 0 0">${g.n} je pro ${g.minP===g.maxP?'přesně '+g.minP:'aspoň '+(g.minP||1)} hráče – zaškrtni, kdo hraje.</p>`:''}`;})()}<p class="muted" style="margin:8px 0 0">Všichni hází u jednoho terče, po 3 šipkách se střídá hráč. Šipky se zadávají na klávesnici Single / Double / Triple a číslo. S Autodarts se zapíšou samy a špatně přečtenou šipku opravíš ťuknutím na ni. Párty hry se ukládají jen v tomto zařízení a do statistik doublů se nepočítají.</p></div>`;
   if(H.length)h+=`<div class="card scroll"><b>Odehrané hry</b><table><thead><tr><th>Datum</th><th>Hra</th><th style="text-align:left">Pořadí</th><th></th></tr></thead><tbody>${H.slice().reverse().slice(0,30).map(x=>{const rk=pgReplay(Object.assign({},x,{end:1})).rank;return `<tr><td>${fDL(x.ts)}</td><td>${PG[x.game].n}${isMt(x)?' <small class="muted">(zápas)</small>':''}${x.bet?' <small class="muted">💰 '+x.bet+'</small>':''}</td><td style="text-align:left;white-space:normal">${rk.map(r=>`${r.pl}. ${r.pl===1?'🏆 ':''}${esc(x.pl[r.p])} <b>${r.s}</b>`).join(' · ')}</td><td>${pconf==='h'+x.id?`<button class="b sm" data-act="phdel" data-id="${esc(x.id)}">Smazat</button>`:`<button class="b ghost sm" data-act="phask" data-id="${esc(x.id)}" aria-label="Smazat hru">✕</button>`}</td></tr>`;}).join('')}</tbody></table></div>`;
@@ -2622,6 +2629,7 @@ document.addEventListener('click',async e=>{
     case 'pnext':phold=false;break;
     case 'plog':plog=!plog;break;
     case 'pview':pview=t.dataset.v;pconf=null;break;
+    case 'pdesc':pdesc=!pdesc;break;
     case 'paone':pconf='pa'+String(t.dataset.n).trim().toLowerCase();break;
     case 'pacan':pconf=null;break;
     case 'paask':pconf='paclose';break;
