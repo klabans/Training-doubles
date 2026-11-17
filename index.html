@@ -651,7 +651,7 @@ function makeBoard(hl){
 const BOARD_SVG=makeBoard();
 // šipky posledního kola z kamery jako značky 1–3 na terči (jednotky terče, y dolů)
 function adMarks(){
-  if(!cfg.ad||!run||AD.showPh!==run.phase||AD.showRun!==run.startedAt||!AD.show.length)return '';
+  if(!cfg.ad||!run||AD.old||AD.showPh!==run.phase||AD.showRun!==run.startedAt||!AD.show.length)return ''; // po vytažení (AD.old) značky zmizí, seznam kola zůstává
   return dartMarks(AD.show);
 }
 function dartMarks(L){
@@ -810,7 +810,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 09:10';
+const BUILD='verze 17. 11. 2026, 09:15';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1065,7 +1065,7 @@ function adState(d){
   const L=d.throws.length;
   // první zpráva bez známého výchozího stavu: při hodu je nová jen poslední šipka, jinak je to jen stav (šipky v terči se nepočítají)
   if(AD.n<0){if(d.event==='throwDetected'&&L>0)AD.n=L-1;else{AD.n=L;return;}}
-  if(L<AD.n){if(pgOn())pgTakeout();else{adPad(AD.n);adBob();adCxTakeout();}AD.n=0;AD.vis=[];AD.old=true;}
+  if(L<AD.n){if(pgOn())pgTakeout();else{adPad(AD.n);adBob();adCxTakeout();}AD.n=0;AD.vis=[];AD.old=true;if(!pgOn()&&run&&tab==='train')render();}
   if(L>AD.n){const nw=d.throws.slice(AD.n);AD.n=L;nw.forEach(th=>{if(pgOn()){pgAd(th);return;}adMark(th);adThrow(th);AD.cur=null;});}
 }
 function adMark(th){
@@ -1342,7 +1342,7 @@ function pgGameHtml(){
     if(hold)A+=`<div class="note row spread" style="margin:0 0 10px"><span>🎯 Vytáhni šipky – pak hází <b>${nm(st.p)}</b>.</span><button class="b sm" data-act="pnext">Další hráč ▶</button></div>`;
   }
   if(prev)A+=`<div class="pgprev"><span class="muted">${st.over?'Poslední':'Předchozí'} tah · <b>${nm(prev.p)}</b>:</span>${prev.d.map(pgChip).join('')}<span class="muted">= ${sum(prev)}</span></div>`;
-  const mt=cur&&cur.d.some(d=>d.x!=null)?cur:prev&&prev.d.some(d=>d.x!=null)?prev:null;
+  const mt=cur&&cur.d.some(d=>d.x!=null)?cur:null; // značky jen pro rozehraný / dohozený tah, po vytažení zmizí
   const BD=!mt?'':`<div class="muted" style="text-align:center">Kam šly šipky – ${mt===cur?'tento tah':esc(G.pl[mt.p])+' (předchozí tah)'}</div><div class="bwrap" style="width:min(240px,60vw)"><div class="bsvg">${makeBoard()}</div>${adBoard(dartMarks(mt.d.map(d=>({x:d.x,y:d.y,h:d.v>0}))))}</div>`;
   if(!st.over||pedit!=null)K=pgKeys(st);
   if(!st.over)P=`<div class="pgp">${G.pl.map((n,i)=>{const x=g.tile(st.pl[i],st,G,i);return `<div class="tile${i===sv.p?' cur':''}"><span class="lbl">${esc(n)}</span><span class="v">${x.v}</span><small>${x.sub}</small></div>`;}).join('')}</div>`;
