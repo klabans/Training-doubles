@@ -864,7 +864,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 11:27';
+const BUILD='verze 17. 11. 2026, 11:37';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1278,7 +1278,7 @@ function pgRankOut(st){const al=st.pl.map((_,p)=>p).filter(p=>!st.pl[p].out),el=
 // vítěz okamžitě (st.win) a ostatní podle klíče (vyšší = lepší)
 function pgRankWin(st,key){const w=st.win,o=st.pl.map((x,p)=>({p,s:key(x),x})).filter(x=>x.p!==w).sort((a,b)=>b.s-a.s);o.forEach(x=>{x.pl=(w!=null?2:1)+o.filter(y=>y.s>x.s).length;});return (w!=null?[{p:w,s:key(st.pl[w]),pl:1}]:[]).concat(o.map(x=>({p:x.p,s:x.s,pl:x.pl})));}
 const PG={
- ki:{n:'Killer',cz:'Zabiják',ok:1,minP:2,desc:'Každý hráč má své číslo (náhodně, nebo podle hodu slabší rukou). Klasický Killer: hraje se na celé číslo – single = 1 zásah, double = 2, triple = 3. Všichni začínají se 3 (nebo 5) životy. Killerem se staneš, až máš 3 zásahy svého čísla. Killer zásahy čísla soupeře ubírá životy – triple soupeři se 3 životy je srovná na 0 a teprve další zásah (stačí single) ho zabije. Killer, který trefí své číslo, nic neztrácí. Ve variantě Killer double / Killer triple platí jen doubly / triply: jeden zásah svého doublu (triplu) tě udělá killerem, každý zásah doublu (triplu) soupeře mu vezme 1 život a killer, který trefí své číslo, bere život sám sobě. Vyhrává poslední přeživší.',
+ ki:{n:'Killer',cz:'Zabiják',ok:1,minP:2,desc:'Každý hráč má své číslo (náhodně, nebo podle hodu slabší rukou). Klasický Killer: hraje se na celé číslo – single = 1 zásah, double = 2, triple = 3. Všichni začínají se 3 (nebo 5) životy. Killerem se staneš, až máš 3 zásahy svého čísla. Killer zásahy čísla soupeře ubírá životy – triple soupeři se 3 životy je srovná na 0 a teprve další zásah (stačí single) ho zabije. Zasažený killer navíc o status killera přichází: zásahy jeho čísla se mu smažou o stejný počet a musí si číslo znovu dobít. Killer, který trefí své číslo, nic neztrácí. Ve variantě Killer double / Killer triple platí jen doubly / triply: jeden zásah svého doublu (triplu) tě udělá killerem, každý zásah doublu (triplu) soupeře mu vezme 1 život a killer, který trefí své číslo, bere život sám sobě. Vyhrává poslední přeživší.',
   opt:{md:{l:'Varianta',v:['all','dbl','tpl'],t:{all:'Killer (single, double, triple)',dbl:'Killer double',tpl:'Killer triple'},d:'all'},l:{l:'Životy',v:[3,5],d:3},pk:{l:'Čísla',v:['los','ruka'],t:{los:'náhodně',ruka:'hod slabší rukou'},d:'los'}},
   // varianta G.opt.md: all = celé číslo (S 1, D 2, T 3); start s opt.l životy, killer po 3 zásazích svého čísla (km),
   //   killer ubírá soupeři životy nejvýš na 0, další zásah soupeře s 0 ho zabije; dbl / tpl = jen doubly / triply (1 zásah = killer / 1 život); staré hry bez md = dbl
@@ -1289,9 +1289,9 @@ const PG={
     const o=st.pl.findIndex(y=>y.n===d.n&&!y.out),w=need?1:d.mu,kill=i=>{st.pl[i].out=1;st.out[i]=true;(st.el=st.el||[]).push(i);};if(o<0)return;
     if(md==='all'){
       if(o===st.p){if(!x.k){const was=x.km;x.km=Math.min(3,x.km+w);if(x.km>=3){x.k=1;d.fx='killer!';}else d.fx='+'+(x.km-was)+' ('+x.km+'/3)';}}
-      else if(x.k){const y=st.pl[o];if(y.lv<=0){x.kills++;d.fx='💀 '+G.pl[o];kill(o);}else{const v=Math.min(w,y.lv);y.lv-=v;x.kills+=v;d.fx='−'+v+' '+G.pl[o]+(y.lv?'':' (0)');}}}
+      else if(x.k){const y=st.pl[o];if(y.lv<=0){x.kills++;d.fx='💀 '+G.pl[o];kill(o);}else{const v=Math.min(w,y.lv);y.lv-=v;x.kills+=v;d.fx='−'+v+' '+G.pl[o]+(y.lv?'':' (0)');if(y.k||y.km){y.km=Math.max(0,y.km-w);y.k=0;}}}}
     else if(o===st.p){if(!x.k){x.k=1;d.fx='killer!';}else{x.lv=Math.max(0,x.lv-w);d.fx='−'+w+' sobě';if(x.lv<=0)kill(o);}}
-    else if(x.k){const y=st.pl[o],v=Math.min(w,y.lv);y.lv-=v;x.kills+=v;d.fx='−'+w+' '+G.pl[o];if(y.lv<=0)kill(o);}
+    else if(x.k){const y=st.pl[o],v=Math.min(w,y.lv);y.lv-=v;x.kills+=v;d.fx='−'+w+' '+G.pl[o];y.k=0;if(y.lv<=0)kill(o);}
     const al=st.pl.filter(y=>!y.out).length;if(st.N>1?al<=1:al===0)st.over=true;},
   rank(st){const al=st.pl.map((_,p)=>p).filter(p=>!st.pl[p].out),el=(st.el||[]).slice().reverse();return al.map(p=>({p,s:st.pl[p].lv,pl:1})).concat(el.map((p,i)=>({p,s:0,pl:al.length+1+i})));},
   // tabule: číslo, cesta ke killerovi jako puntíky (●●○) nebo velký odznak KILLER, životy
@@ -1299,7 +1299,7 @@ const PG={
     return [{lbl:'Tvé číslo',v:pf+x.n},x.k?{lbl:'Status',v:'🔪 KILLER',cls:'kil'}:{lbl:'Do killera '+(N-km)+'× '+(md==='dbl'?'double':md==='tpl'?'triple':'zásah'),v:pips(km,N)},{lbl:'Životy',v:'♥ '+x.lv}];},
   hl:(st,G)=>{const x=st.pl[st.p],md=G.opt.md||'dbl';return x.k?null:{type:md==='dbl'?'D':md==='tpl'?'T':'S',n:x.n};},
   hit:d=>!!d.fx,dsub:d=>d.fx||'–',tt:t=>t.d.filter(d=>d.fx).length,ttl:'zásahů',
-  ev(B,A,G){for(let p=0;p<A.N;p++){if(A.pl[p].out&&!B.pl[p].out){const k=pgShooter(A);return ['Killed!','💀 '+G.pl[p]+(k===p?' se zabil sám':k>=0?' – zabil ho '+G.pl[k]:' vypadává')+' · ve hře '+A.pl.filter(y=>!y.out).length,'kill',G.pl[p]];}if(A.pl[p].k&&!B.pl[p].k)return ['🔪 '+G.pl[p]+' je killer!','teď může brát životy ostatním'];}return null;},
+  ev(B,A,G){for(let p=0;p<A.N;p++){if(A.pl[p].out&&!B.pl[p].out){const k=pgShooter(A);return ['Killed!','💀 '+G.pl[p]+(k===p?' se zabil sám':k>=0?' – zabil ho '+G.pl[k]:' vypadává')+' · ve hře '+A.pl.filter(y=>!y.out).length,'kill',G.pl[p]];}if(A.pl[p].k&&!B.pl[p].k)return ['🔪 '+G.pl[p]+' je killer!','teď může brát životy ostatním'];if(B.pl[p].k&&!A.pl[p].k&&!A.pl[p].out)return ['🩸 '+G.pl[p]+' už není killer','musí znovu dobít své číslo'];}return null;},
   cele:(A,G)=>['🏆 '+G.pl[A.rank[0].p],'poslední přeživší · Killer'],
   tile:(x,st,G)=>{const md=G.opt.md||'dbl',N=md==='all'?3:1,km=md==='all'?x.km:x.k?1:0;return {cls:x.k&&!x.out?'kil':'',v:x.out?'✖':(x.k?'🔪 ':'')+'♥ '+x.lv,sub:(md==='dbl'?'D':md==='tpl'?'T':'')+x.n+' · '+(x.out?'vypadl':x.k?'<b>KILLER</b>':pips(km,N))+(x.kills?' · ubráno '+x.kills+' ♥':'')};},
   resH:['Životy','Ubráno životů'],res:x=>[x.out?0:x.lv,x.kills],
