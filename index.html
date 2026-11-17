@@ -810,7 +810,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 16. 11. 2026, 23:30';
+const BUILD='verze 17. 11. 2026, 09:05';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1228,7 +1228,7 @@ const PG={
  cd:{n:'Chase the Dragon',cz:'Honba za drakem'}
 };
 let pcfg=lsGet(LS_PC,null)||{pl:['Hráč 1','Hráč 2'],game:'cu',opt:{}};if(!pcfg.opt)pcfg.opt={};if(!(PG[pcfg.game]&&PG[pcfg.game].ok))pcfg.game='cu';
-let PGR=lsGet(LS_PD,null),pmul=1,pedit=null,plog=false,pconf=null,pscroll=false,pman=false;
+let PGR=lsGet(LS_PD,null),pmul=1,pedit=null,plog=false,pconf=null,pscroll=false,pman=false,phold=false;
 if(PGR&&!(PG[PGR.game]&&PG[PGR.game].ok&&Array.isArray(PGR.darts)))PGR=null;
 function pgSave(){if(PGR)lsSet(LS_PD,PGR);else lsDel(LS_PD);}
 function pcSave(){lsSet(LS_PC,pcfg);}
@@ -1265,7 +1265,7 @@ function pgPush(recs){
 }
 function pgKey(n){
   let s;if(!n)s='M';else if(n===25){if(pmul===3)return;s=pmul===2?'DB':'SB';}else s='SDT'[pmul-1]+n;
-  if(pedit!=null)pgSet(pedit,s);else pgPush([s]);
+  if(pedit!=null)pgSet(pedit,s);else{phold=false;pgPush([s]);}
 }
 function pgSet(i,s){
   // po opravě se přejde na další šipku téhož tahu (lze opravit všechny tři za sebou); po poslední se oprava zavře
@@ -1280,16 +1280,19 @@ function pgSet(i,s){
 function pgUndo(){
   if(!PGR)return;const st=pgReplay(PGR),D=PGR.darts;D.length=st.used;if(!D.length)return;
   D.pop();while(D.length%3&&D[D.length-1]==='-')D.pop(); // doplněné (nehozené) šipky tahu se vrací najednou
-  pedit=null;pmul=1;pgSave();render();
+  pedit=null;pmul=1;phold=false;pgSave();render();
 }
-function pgTurn(){if(!PGR)return;const st=pgReplay(PGR);if(st.over)return;const k=st.t?st.t.d.length:0;pgPush(Array(3-k).fill('-'));}
-// Autodarts: šipka → záznam s polohou; vytažení po méně než 3 šipkách doplní tah jako nehozený
+function pgTurn(){if(!PGR)return;phold=false;const st=pgReplay(PGR);if(st.over)return;const k=st.t?st.t.d.length:0;pgPush(Array(3-k).fill('-'));}
+// Autodarts: šipka → záznam s polohou; vytažení po méně než 3 šipkách doplní tah jako nehozený.
+// Po 3. šipce zůstane tah na tabuli (phold), dokud se šipky nevytáhnou – teprve pak se ukáže další hráč.
 function pgAd(th){
-  const sn=+th.segmentNumber,mu=+th.multiplier;
+  const sn=+th.segmentNumber,mu=+th.multiplier,B=pgReplay(PGR);
+  phold=!B.over&&!!B.t&&B.t.d.length===2;
   const s=!(mu>0)||!sn?'M':sn===25?(mu===2?'DB':'SB'):'SDT'[Math.min(mu,3)-1]+sn;
   pgPush([s+adPos(th)]);
 }
 function pgTakeout(){
+  if(phold){phold=false;render();return;}
   const st=pgReplay(PGR);if(st.over||!st.t||!st.t.d.length)return;const k=st.t.d.length;
   pgPush(Array(3-k).fill('-'));
   flash('🎯 Kamera zachytila jen '+k+' z 3 šipek – zbytek tahu je zapsaný jako nehozený (ťuknutím opravíš).');
@@ -1320,7 +1323,8 @@ function pgKeys(st){
 }
 function pgGameHtml(){
   const G=PGR,g=PG[G.game],st=pgReplay(G),nm=i=>esc(G.pl[i]),sum=t=>t.d.reduce((a,d)=>a+d.v,0);
-  const cur=st.t&&st.t.d.length?st.t:null,prev=st.T[st.T.length-(st.t?2:1)]||null;
+  const hold=phold&&!st.over&&!st.t&&st.T.length>0,ht=hold?st.T[st.T.length-1]:null,sv=hold?Object.assign({},st,{p:ht.p,rd:ht.rd}):st;
+  const cur=hold?ht:st.t&&st.t.d.length?st.t:null,prev=st.T[st.T.length-(st.t||hold?2:1)]||null;
   let A='',K='',P='',L='';
   const top=`<div class="row spread" style="margin:0 0 6px"><span class="muted">${G.pl.length} ${G.pl.length<5?'hráči':'hráčů'}</span><span class="row"><button class="chip ${cfg.ad?'cur':''}" data-act="adtog" title="Zápis šipek z kamery Autodarts (Board Manager na tomto počítači)">🎯 Autodarts: <span id="adSt">${cfg.ad?adLbl():'vypnuto'}</span></button><button class="b ghost sm" data-act="pquit">✕ Zahodit hru</button></span></div>`;
   if(st.over){
@@ -1329,15 +1333,16 @@ function pgGameHtml(){
     <div class="card scroll"><table><thead><tr><th>Pořadí</th><th>Hráč</th>${g.resH.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${st.rank.map(x=>`<tr><td>${x.pl}.</td><td>${nm(x.p)}</td>${g.res(st.pl[x.p]).map(v=>`<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     <div class="row" style="justify-content:center;margin:6px 0 12px"><button class="b start" data-act="pagain">🔁 Odveta</button><button class="b" data-act="pdone">✔ Uložit a zpět</button><button class="b ghost" data-act="pundo">↩ Vrátit poslední šipku</button></div>`;
   }else{
-    const cells=g.cells(st,G),n=cells.length+2,td=st.t?st.t.d:[];
-    A=`<div class="sb${n===4?' n4':''}" style="--n:${n}"><div class="tile nm" style="grid-column:span 2"><span class="lbl">Hází</span><span class="v">${nm(st.p)}</span></div>${cells.map(c=>`<div class="tile"><span class="lbl">${c.lbl}</span><span class="v">${c.v}</span></div>`).join('')}</div>`;
+    const cells=g.cells(sv,G),n=cells.length+2,td=hold?ht.d:st.t?st.t.d:[];
+    A=`<div class="sb${n===4?' n4':''}" style="--n:${n}"><div class="tile nm" style="grid-column:span 2"><span class="lbl">${hold?'Dohozeno':'Hází'}</span><span class="v">${nm(sv.p)}</span></div>${cells.map(c=>`<div class="tile"><span class="lbl">${c.lbl}</span><span class="v">${c.v}</span></div>`).join('')}</div>`;
     A+=`<div class="pgd">${[0,1,2].map(k=>{const d=td[k];return d?`<button class="dt${pedit===d.i?' ed':''}" data-act="pedit" data-i="${d.i}" title="Ťukni pro opravu"><b>${pgLbl(d)}</b><small>${d.fix?'opraveno':d.v+' b.'}</small></button>`:`<div class="dt nx${k===td.length?' now':''}"><b>–</b><small>šipka ${k+1}</small></div>`;}).join('')}<div class="dt tot"><b>${sum({d:td})}</b><small>tah</small></div></div>`;
+    if(hold)A+=`<div class="note row spread" style="margin:0 0 10px"><span>🎯 Vytáhni šipky – pak hází <b>${nm(st.p)}</b>.</span><button class="b sm" data-act="pnext">Další hráč ▶</button></div>`;
   }
   if(prev)A+=`<div class="pgprev"><span class="muted">${st.over?'Poslední':'Předchozí'} tah · <b>${nm(prev.p)}</b>:</span>${prev.d.map(pgChip).join('')}<span class="muted">= ${sum(prev)}</span></div>`;
   const mt=cur&&cur.d.some(d=>d.x!=null)?cur:prev&&prev.d.some(d=>d.x!=null)?prev:null;
   const BD=!mt?'':`<div class="muted" style="text-align:center">Kam šly šipky – ${mt===cur?'tento tah':esc(G.pl[mt.p])+' (předchozí tah)'}</div><div class="bwrap" style="width:min(240px,60vw)"><div class="bsvg">${makeBoard()}</div>${adBoard(dartMarks(mt.d.map(d=>({x:d.x,y:d.y,h:d.v>0}))))}</div>`;
   if(!st.over||pedit!=null)K=pgKeys(st);
-  if(!st.over)P=`<div class="pgp">${G.pl.map((n,i)=>{const x=g.tile(st.pl[i],st,G,i);return `<div class="tile${i===st.p?' cur':''}"><span class="lbl">${esc(n)}</span><span class="v">${x.v}</span><small>${x.sub}</small></div>`;}).join('')}</div>`;
+  if(!st.over)P=`<div class="pgp">${G.pl.map((n,i)=>{const x=g.tile(st.pl[i],st,G,i);return `<div class="tile${i===sv.p?' cur':''}"><span class="lbl">${esc(n)}</span><span class="v">${x.v}</span><small>${x.sub}</small></div>`;}).join('')}</div>`;
   if(st.T.length)L=`<div class="card"><button class="howbtn" data-act="plog">${plog?'▾':'▸'} Průběh hry (${st.T.length} ${st.T.length===1?'tah':st.T.length<5?'tahy':'tahů'}) – ťuknutím na šipku ji opravíš</button>${plog?st.T.slice().reverse().map(t=>`<div class="pgprev"><span class="muted">kolo ${t.rd} · <b>${nm(t.p)}</b>:</span>${t.d.map(pgChip).join('')}<span class="muted">= ${sum(t)}</span></div>`).join(''):''}</div>`;
   if(pscroll){pscroll=false;after.push(()=>{const k=$('.pgk');if(k)k.scrollIntoView({block:'nearest',behavior:'smooth'});});}
   return top+`<div class="pgg"><div class="pga">${A}</div><div class="pgk">${K}</div><div class="pgpp">${BD}${P}</div><div class="pgl">${L}</div></div>`;
@@ -2096,6 +2101,7 @@ document.addEventListener('click',async e=>{
     case 'pecancel':pedit=null;pmul=1;break;
     case 'psel':{pedit=+t.dataset.i;const d=pgSeg(PGR.darts[pedit]);pmul=d.mu===2||d.mu===3?d.mu:1;break;}
     case 'pman':pman=!pman;break;
+    case 'pnext':phold=false;break;
     case 'plog':plog=!plog;break;
     case 'pview':pview=t.dataset.v;break;
     case 'pgf':pgf=t.dataset.v;break;
