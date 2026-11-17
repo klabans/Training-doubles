@@ -6,7 +6,7 @@
 <title>Klaboš Doubles Trénink</title>
 <style>
 :root{
-  --adok:#1fcb62;--adbad:#e5202e;
+  --adok:#1fcb62;--adwait:#f59e0b;--adbad:#e5202e;
   color-scheme:light;
   --bg:#fcfcfb;--card:#f4f3f0;--line:#e2e1dc;--grid:#e9e8e4;
   --tx:#0b0b0b;--tx2:#52514e;--tx3:#6b6a66;
@@ -86,7 +86,8 @@ select{font:inherit;padding:8px 10px;border-radius:8px;background:var(--card);co
 @keyframes celein{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){.cele,.cele b{animation:none}.cele i{display:none}}
 /* stav Autodarts: aura kolem terče */
-body.ad-ok .bwrap .bsvg,body.ad-bad .bwrap .bsvg{border-radius:50%}
+body.ad-ok .bwrap .bsvg,body.ad-wait .bwrap .bsvg,body.ad-bad .bwrap .bsvg{border-radius:50%}
+body.ad-wait .bwrap .bsvg{box-shadow:0 0 0 2px color-mix(in srgb,var(--adwait) 75%,transparent),0 0 12px 2px color-mix(in srgb,var(--adwait) 35%,transparent),0 0 40px 10px color-mix(in srgb,var(--adwait) 14%,transparent)}
 body.ad-ok .bwrap .bsvg{box-shadow:0 0 0 2px color-mix(in srgb,var(--adok) 70%,transparent),0 0 12px 2px color-mix(in srgb,var(--adok) 35%,transparent),0 0 40px 10px color-mix(in srgb,var(--adok) 16%,transparent)}
 body.ad-bad .bwrap .bsvg{box-shadow:0 0 0 2px color-mix(in srgb,var(--adbad) 75%,transparent),0 0 10px 1px color-mix(in srgb,var(--adbad) 40%,transparent);animation:adbad 1.6s ease-in-out infinite}
 @keyframes adbad{50%{box-shadow:0 0 0 2px color-mix(in srgb,var(--adbad) 35%,transparent),0 0 2px 0 transparent}}
@@ -825,7 +826,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 09:51';
+const BUILD='verze 17. 11. 2026, 09:55';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1062,12 +1063,13 @@ function adPos(th){return th.coordsX==null||th.coordsY==null?'':'@'+(+th.coordsX
 function ptsEnc(L){return L.filter(d=>d.p).map(d=>d.t+(d.h?'h':'m')+d.p).join(';');}
 function ptsDec(q){return String(q||'').split(';').map(z=>{const m=/^(\d+)([hm])@(-?[\d.]+),(-?[\d.]+)$/.exec(z);return m?{t:+m[1],h:m[2]==='h',x:+m[3],y:+m[4]}:null;}).filter(Boolean);}
 function adUrl(){return cfg.adUrl||'ws://localhost:3180/api/events';}
-function adLbl(){return {off:'vypnuto',con:'připojuji…',on:'počítá',stop:'zastaveno – nepočítá',err:'nepřipojeno'}[AD.st];}
+function adLbl(){return {off:'vypnuto',con:'připojuji…',on:'počítá',wait:'vytáhni šipky',stop:'zastaveno – nepočítá',err:'nepřipojeno'}[AD.st];}
 function adSet(v){AD.st=v;const e=document.getElementById('adSt');if(e)e.textContent=adLbl();adBody();}
-// aura kolem terče: zelená = kamera počítá, červená (bliká) = odpojeno nebo Autodarts zastavený/pozastavený (bez překreslení obrazovky)
-function adBody(){const b=document.body.classList,ok=!!cfg.ad&&AD.st==='on';b.toggle('ad-ok',ok);b.toggle('ad-bad',!!cfg.ad&&!ok);}
+// aura kolem terče: zelená = kamera počítá, oranžová = vytáhni šipky (Autodarts teď nepočítá), červená (bliká) = odpojeno nebo Autodarts zastavený/pozastavený (bez překreslení obrazovky)
+function adBody(){const b=document.body.classList,on=!!cfg.ad,ok=on&&AD.st==='on',w=on&&AD.st==='wait';b.toggle('ad-ok',ok);b.toggle('ad-wait',w);b.toggle('ad-bad',on&&!ok&&!w);}
 // stav Board Manageru: running=false / connected=false / status stop|pause = nepočítá
-function adRun(d){if(!d||!AD.ws||AD.ws.readyState!==1)return;const bad=d.running===false||d.connected===false||/stop|paus/i.test(String(d.status||''));const v=bad?'stop':'on';if(AD.st!==v)adSet(v);}
+// status: throw = zelená (počítá); takeout / takeoutInProgress a jiné stavy = oranžová (jako Autodarts: čeká na vytažení šipek)
+function adRun(d){if(!d||!AD.ws||AD.ws.readyState!==1)return;const st=String(d.status||''),bad=d.running===false||d.connected===false||/stop|paus/i.test(st);const v=bad?'stop':(!st||/^throw$/i.test(st))?'on':'wait';if(AD.st!==v)adSet(v);}
 function adStateUrl(){return adUrl().replace(/^ws/,'http').replace(/\/api\/events.*$/,'/api/state');}
 function adConnect(){
   clearTimeout(AD.tm);if(!cfg.ad){adStop();return;}
