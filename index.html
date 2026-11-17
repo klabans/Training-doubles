@@ -246,6 +246,19 @@ button.dt{cursor:pointer}
 .pgp .tile .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
 .pgp .tile.cur{border-color:var(--s1);box-shadow:0 0 0 3px var(--s1)}
 .pgp .tile small{display:block;color:var(--tx3);font-size:13px}
+/* Killer: puntíky cesty ke killerovi a odznak KILLER */
+.pips{display:inline-flex;gap:.22em;vertical-align:middle}
+.pips i{display:inline-block;width:.62em;height:.62em;border-radius:50%;border:.1em solid currentColor;box-sizing:border-box}
+.pips i.on{background:currentColor}
+.pgp .tile small .pips{font-size:26px;color:var(--s1)}
+.sb .tile .v .pips{gap:.18em}.sb .tile .v .pips i{width:.85em;height:.85em;border-width:.12em}
+.sb .tile.kil{background:var(--s2);border-color:var(--s2)}
+.sb .tile.kil .lbl,.sb .tile.kil .v{color:#fff}
+.sb .tile.kil .v{font-size:32px;font-size:clamp(22px,20cqi,64px);font-style:normal}
+.pgp .tile.kil{border-color:var(--s2);box-shadow:0 0 0 2px var(--s2)}
+.pgp .tile.kil .v,.pgp .tile.kil small b{color:var(--s2)}
+.pgp .tile.cur.kil{box-shadow:0 0 0 3px var(--s1),0 0 0 6px var(--s2)}
+@media (max-width:600px){.sb.n5{grid-template-columns:repeat(3,1fr)}.sb.n5 .tile.nm{grid-column:1/-1!important}}
 .pkm,.pkn,.pkb{display:grid;gap:8px;margin:0 0 8px}
 .pkm{grid-template-columns:repeat(3,1fr)}.pkn{grid-template-columns:repeat(5,1fr)}.pkb{grid-template-columns:repeat(4,1fr)}.pkb.e{grid-template-columns:repeat(3,1fr)}
 .pkm .b,.pkn .b,.pkb .b{min-height:56px;padding:4px 2px;font-size:20px;min-width:0}
@@ -851,7 +864,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 10:59';
+const BUILD='verze 17. 11. 2026, 11:27';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1253,6 +1266,7 @@ const HI=[15,16,'D',17,18,'T',19,20,'B'];              // Halve It
 const ACS=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,25]; // Around the Clock
 const CDS=[10,11,12,13,14,15,16,17,18,19,20].map(n=>({n,m:3})).concat([{n:25,m:1},{n:25,m:2}]); // Chase the Dragon
 const DK='DONKEY',TTL=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function pips(n,N){let h='<span class="pips" aria-label="'+n+' z '+N+'">';for(let i=0;i<N;i++)h+=`<i class="${i<n?'on':''}"></i>`;return h+'</span>';}
 function hiOk(d,q){if(!d.mu)return false;if(q==='D')return d.mu===2;if(q==='T')return d.mu===3;if(q==='B')return d.n===25;return d.n===q;}
 function hiLbl(q){return q==='D'?'Double':q==='T'?'Triple':q==='B'?'Bull':q;}
 function rndNums(N){const a=Array.from({length:20},(_,i)=>i+1);for(let i=19;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a.slice(0,N);}
@@ -1264,24 +1278,30 @@ function pgRankOut(st){const al=st.pl.map((_,p)=>p).filter(p=>!st.pl[p].out),el=
 // vítěz okamžitě (st.win) a ostatní podle klíče (vyšší = lepší)
 function pgRankWin(st,key){const w=st.win,o=st.pl.map((x,p)=>({p,s:key(x),x})).filter(x=>x.p!==w).sort((a,b)=>b.s-a.s);o.forEach(x=>{x.pl=(w!=null?2:1)+o.filter(y=>y.s>x.s).length;});return (w!=null?[{p:w,s:key(st.pl[w]),pl:1}]:[]).concat(o.map(x=>({p:x.p,s:x.s,pl:x.pl})));}
 const PG={
- ki:{n:'Killer',cz:'Zabiják',ok:1,minP:2,desc:'Každý hráč má své číslo (náhodně, nebo podle hodu slabší rukou) a 3 nebo 5 životů. Klasický Killer: hraje se na celé číslo – single = 1 zásah, double = 2, triple = 3. Killerem se staneš, až máš 3 zásahy svého čísla; pak každým zásahem čísla soupeře mu bereš životy (single 1, double 2, triple 3). Ve variantě Killer double / Killer triple platí jen doubly / triply: jeden zásah svého doublu (triplu) tě udělá killerem a každý zásah doublu (triplu) soupeře mu vezme 1 život. Killer, který trefí své číslo, bere životy sám sobě. Kdo přijde o všechny životy, vypadává; vyhrává poslední přeživší.',
+ ki:{n:'Killer',cz:'Zabiják',ok:1,minP:2,desc:'Každý hráč má své číslo (náhodně, nebo podle hodu slabší rukou). Klasický Killer: hraje se na celé číslo – single = 1 zásah, double = 2, triple = 3. Všichni začínají se 3 (nebo 5) životy. Killerem se staneš, až máš 3 zásahy svého čísla. Killer zásahy čísla soupeře ubírá životy – triple soupeři se 3 životy je srovná na 0 a teprve další zásah (stačí single) ho zabije. Killer, který trefí své číslo, nic neztrácí. Ve variantě Killer double / Killer triple platí jen doubly / triply: jeden zásah svého doublu (triplu) tě udělá killerem, každý zásah doublu (triplu) soupeře mu vezme 1 život a killer, který trefí své číslo, bere život sám sobě. Vyhrává poslední přeživší.',
   opt:{md:{l:'Varianta',v:['all','dbl','tpl'],t:{all:'Killer (single, double, triple)',dbl:'Killer double',tpl:'Killer triple'},d:'all'},l:{l:'Životy',v:[3,5],d:3},pk:{l:'Čísla',v:['los','ruka'],t:{los:'náhodně',ruka:'hod slabší rukou'},d:'los'}},
-  // varianta G.opt.md: all = celé číslo (S 1, D 2, T 3; killer po 3 zásazích), dbl / tpl = jen doubly / triply; staré hry bez md = dbl
+  // varianta G.opt.md: all = celé číslo (S 1, D 2, T 3); start s opt.l životy, killer po 3 zásazích svého čísla (km),
+  //   killer ubírá soupeři životy nejvýš na 0, další zásah soupeře s 0 ho zabije; dbl / tpl = jen doubly / triply (1 zásah = killer / 1 život); staré hry bez md = dbl
   // čísla hráčů jsou v G.nums (los při založení hry, nebo postupně hodem slabší rukou před hrou)
   setup(G){const N=G.pl.length;if(G.opt.pk==='ruka')G.nums=G.pl.map(()=>null);else{const a=Array.from({length:20},(_,i)=>i+1);for(let i=19;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}G.nums=a.slice(0,N);}},
   init:(G,p)=>({n:G.nums[p],lv:G.opt.l||3,k:0,km:0,kills:0,out:0}),
   dart(st,d,G){const x=st.pl[st.p],md=G.opt.md||'dbl',need=md==='dbl'?2:md==='tpl'?3:0;if(x.out||!d.mu||d.n<1||d.n>20||(need&&d.mu!==need))return;
     const o=st.pl.findIndex(y=>y.n===d.n&&!y.out),w=need?1:d.mu,kill=i=>{st.pl[i].out=1;st.out[i]=true;(st.el=st.el||[]).push(i);};if(o<0)return;
-    if(o===st.p){if(!x.k){x.km=Math.min(3,x.km+w);if(need||x.km>=3){x.k=1;d.fx='killer!';}else d.fx='+'+w+' ('+x.km+'/3)';}else{x.lv=Math.max(0,x.lv-w);d.fx='−'+w+' sobě';if(x.lv<=0)kill(o);}}
+    if(md==='all'){
+      if(o===st.p){if(!x.k){const was=x.km;x.km=Math.min(3,x.km+w);if(x.km>=3){x.k=1;d.fx='killer!';}else d.fx='+'+(x.km-was)+' ('+x.km+'/3)';}}
+      else if(x.k){const y=st.pl[o];if(y.lv<=0){x.kills++;d.fx='💀 '+G.pl[o];kill(o);}else{const v=Math.min(w,y.lv);y.lv-=v;x.kills+=v;d.fx='−'+v+' '+G.pl[o]+(y.lv?'':' (0)');}}}
+    else if(o===st.p){if(!x.k){x.k=1;d.fx='killer!';}else{x.lv=Math.max(0,x.lv-w);d.fx='−'+w+' sobě';if(x.lv<=0)kill(o);}}
     else if(x.k){const y=st.pl[o],v=Math.min(w,y.lv);y.lv-=v;x.kills+=v;d.fx='−'+w+' '+G.pl[o];if(y.lv<=0)kill(o);}
     const al=st.pl.filter(y=>!y.out).length;if(st.N>1?al<=1:al===0)st.over=true;},
   rank(st){const al=st.pl.map((_,p)=>p).filter(p=>!st.pl[p].out),el=(st.el||[]).slice().reverse();return al.map(p=>({p,s:st.pl[p].lv,pl:1})).concat(el.map((p,i)=>({p,s:0,pl:al.length+1+i})));},
-  cells:(st,G)=>{const x=st.pl[st.p],md=G.opt.md||'dbl',pf=md==='dbl'?'D':md==='tpl'?'T':'';return [{lbl:x.k?'Killer 🔪 · tvé číslo':md==='all'?'Tvé číslo · zásahy '+x.km+'/3':'Trefit '+(md==='dbl'?'double':'triple')+' svého čísla',v:pf+x.n},{lbl:'Životy',v:x.lv}];},
+  // tabule: číslo, cesta ke killerovi jako puntíky (●●○) nebo velký odznak KILLER, životy
+  cells:(st,G)=>{const x=st.pl[st.p],md=G.opt.md||'dbl',pf=md==='dbl'?'D':md==='tpl'?'T':'',N=md==='all'?3:1,km=md==='all'?x.km:x.k?1:0;
+    return [{lbl:'Tvé číslo',v:pf+x.n},x.k?{lbl:'Status',v:'🔪 KILLER',cls:'kil'}:{lbl:'Do killera '+(N-km)+'× '+(md==='dbl'?'double':md==='tpl'?'triple':'zásah'),v:pips(km,N)},{lbl:'Životy',v:'♥ '+x.lv}];},
   hl:(st,G)=>{const x=st.pl[st.p],md=G.opt.md||'dbl';return x.k?null:{type:md==='dbl'?'D':md==='tpl'?'T':'S',n:x.n};},
   hit:d=>!!d.fx,dsub:d=>d.fx||'–',tt:t=>t.d.filter(d=>d.fx).length,ttl:'zásahů',
   ev(B,A,G){for(let p=0;p<A.N;p++){if(A.pl[p].out&&!B.pl[p].out){const k=pgShooter(A);return ['Killed!','💀 '+G.pl[p]+(k===p?' se zabil sám':k>=0?' – zabil ho '+G.pl[k]:' vypadává')+' · ve hře '+A.pl.filter(y=>!y.out).length,'kill',G.pl[p]];}if(A.pl[p].k&&!B.pl[p].k)return ['🔪 '+G.pl[p]+' je killer!','teď může brát životy ostatním'];}return null;},
   cele:(A,G)=>['🏆 '+G.pl[A.rank[0].p],'poslední přeživší · Killer'],
-  tile:(x,st,G)=>{const md=G.opt.md||'dbl';return {v:x.out?'✖':'♥ '+x.lv,sub:(md==='dbl'?'D':md==='tpl'?'T':'')+x.n+(x.k?' · 🔪 killer':md==='all'&&x.km?' · '+x.km+'/3':'')+(x.kills?' · zabito '+x.kills+' ♥':'')};},
+  tile:(x,st,G)=>{const md=G.opt.md||'dbl',N=md==='all'?3:1,km=md==='all'?x.km:x.k?1:0;return {cls:x.k&&!x.out?'kil':'',v:x.out?'✖':(x.k?'🔪 ':'')+'♥ '+x.lv,sub:(md==='dbl'?'D':md==='tpl'?'T':'')+x.n+' · '+(x.out?'vypadl':x.k?'<b>KILLER</b>':pips(km,N))+(x.kills?' · ubráno '+x.kills+' ♥':'')};},
   resH:['Životy','Ubráno životů'],res:x=>[x.out?0:x.lv,x.kills],
   lb:{h:['Her','Výher','% výher','Ubráno životů','Ø na hru'],
    key:b=>b.w*1e4+b.sc.reduce((a,c)=>a+((c.x&&c.x.kills)||0),0)/b.g,
@@ -1542,12 +1562,20 @@ function celebrate(t,sub,kind,nm){
   if(k)for(let i=0;i<14;i++)c+=`<i class="sk" style="left:${(Math.random()*95).toFixed(1)}%;animation-duration:${(2.2+Math.random()*2).toFixed(2)}s;animation-delay:${(Math.random()*1).toFixed(2)}s">💀</i>`;
   el.innerHTML=c+(k&&nm?skullSvg(nm):`<b>${esc(t)}</b>`)+`<span>${esc(sub)}</span>`;el.onclick=()=>el.remove();document.body.appendChild(el);setTimeout(()=>el.remove(),k?5500:6500);
 }
-function pgWin(A){if(A.sh){celebrate('Shanghai!','🎯 '+PGR.pl[A.sh.p]+' vyhrává · kolo '+A.sh.rd);return;}if(PG[PGR.game].cele){const c=PG[PGR.game].cele(A,PGR);celebrate(c[0],c[1]);return;}const g=PG[PGR.game],w=A.rank.filter(x=>x.pl===1).map(x=>PGR.pl[x.p]);celebrate(w.length>1?'Remíza':'🏆 '+w[0],(w.length>1?w.join(' + ')+' · ':'vítěz · ')+g.n);}
+function pgWin(A,G){G=G||PGR;if(A.sh){celebrate('Shanghai!','🎯 '+G.pl[A.sh.p]+' vyhrává · kolo '+A.sh.rd);return;}if(PG[G.game].cele){const c=PG[G.game].cele(A,G);celebrate(c[0],c[1]);return;}const g=PG[G.game],w=A.rank.filter(x=>x.pl===1).map(x=>G.pl[x.p]);celebrate(w.length>1?'Remíza':'🏆 '+w[0],(w.length>1?w.join(' + ')+' · ':'vítěz · ')+g.n);}
 function pgPush(recs){
   if(!PGR)return;const B=pgReplay(PGR);
   if(B.over){flash('Hra skončila – šipku opravíš ťuknutím, „↩ Vrátit poslední šipku“ hru obnoví.');return;}
   PGR.darts.length=B.used;recs.forEach(r=>PGR.darts.push(r));pmul=1;pgSave();
-  const A=pgReplay(PGR),g=PG[PGR.game];if(A.over)pgWin(A);else if(g.ev){const m=g.ev(B,A,PGR);if(m){if(m[2])celebrate(m[0],m[1],m[2],m[3]);else say(m[0],m[1]);}}render();
+  pgFx(B,pgReplay(PGR));render();
+}
+// po změně hry: hláška / oslava vyřazení (lebka), a když hra skončila, po ní oslava vítěze
+let pgWinT=0;
+function pgFx(B,A){
+  const G=PGR,g=PG[G.game],m=g.ev?g.ev(B,A,G):null;clearTimeout(pgWinT);
+  if(m&&m[2]){celebrate(m[0],m[1],m[2],m[3]);if(A.over&&!B.over)pgWinT=setTimeout(()=>pgWin(A,G),5600);return;}
+  if(A.over&&!B.over){pgWin(A,G);return;}
+  if(m&&!A.over)say(m[0],m[1]);
 }
 function pgKey(n){
   if(pgPicking()){pgPick(n);return;}
@@ -1562,12 +1590,12 @@ function pgSet(i,s){
   PGR.darts[i]=s+(a.x!=null?'@'+a.x+','+a.y:'')+'*';pgSave();
   const A=pgReplay(PGR);
   flash('✔ Opraveno: '+pgLbl(a)+' → '+pgLbl(pgSeg(s))+(B.over&&!A.over?' – výsledek se změnil, hra pokračuje.':!B.over&&A.over?' – touto opravou hra skončila.':''));
-  if(A.over&&!B.over)pgWin(A);render();
+  pgFx(B,A);render();
 }
 function pgUndo(){
   if(!PGR)return;const st=pgReplay(PGR),D=PGR.darts;D.length=st.used;if(!D.length)return;
   D.pop();while(D.length%3&&D[D.length-1]==='-')D.pop(); // doplněné (nehozené) šipky tahu se vrací najednou
-  pedit=null;pmul=1;phold=false;pgSave();render();
+  pedit=null;pmul=1;phold=false;clearTimeout(pgWinT);pgSave();render();
 }
 function pgTurn(){if(!PGR)return;phold=false;const st=pgReplay(PGR);if(st.over)return;const k=st.t?st.t.d.length:0;pgPush(Array(3-k).fill('-'));}
 // Autodarts: šipka → záznam s polohou; vytažení po méně než 3 šipkách doplní tah jako nehozený.
@@ -1623,7 +1651,7 @@ function pgGameHtml(){
     <div class="row" style="justify-content:center;margin:6px 0 12px"><button class="b start" data-act="pagain">🔁 Odveta</button><button class="b" data-act="pdone">✔ Uložit a zpět</button><button class="b ghost" data-act="pundo">↩ Vrátit poslední šipku</button></div>`;
   }else{
     const cells=g.cells(sv,G),n=cells.length+2,tt=hold?ht:st.t||{rd:st.rd,d:[]},td=tt.d;
-    A=`<div class="sb${n===4?' n4':''}" style="--n:${n}"><div class="tile nm" style="grid-column:span 2"><span class="lbl">${hold?'Dohozeno':'Hází'}</span><span class="v">${nm(sv.p)}</span></div>${cells.map(c=>`<div class="tile"><span class="lbl">${c.lbl}</span><span class="v">${c.v}</span></div>`).join('')}</div>`;
+    A=`<div class="sb${n===4?' n4':n===5?' n5':''}" style="--n:${n}"><div class="tile nm" style="grid-column:span 2"><span class="lbl">${hold?'Dohozeno':'Hází'}</span><span class="v">${nm(sv.p)}</span></div>${cells.map(c=>`<div class="tile${c.cls?' '+c.cls:''}"><span class="lbl">${c.lbl}</span><span class="v">${c.v}</span></div>`).join('')}</div>`;
     A+=`<div class="pgd">${[0,1,2].map(k=>{const d=td[k];return d?`<button class="dt${pedit===d.i?' ed':''}" data-act="pedit" data-i="${d.i}" title="Ťukni pro opravu"><b>${pgLbl(d)}</b><small>${d.fix?'opraveno':g.dsub?esc(g.dsub(d)):dv(d,tt)+' b.'}</small></button>`:`<div class="dt nx${k===td.length?' now':''}"><b>–</b><small>šipka ${k+1}</small></div>`;}).join('')}<div class="dt tot"><b>${tv(tt)}</b><small>${g.ttl||'tah'}</small></div></div>`;
     // s kamerou drží výzva k vytažení místo pořád (skrytá), aby obsah pod ní neposkakoval
     if(hold||cfg.ad)A+=`<div class="note row spread" style="margin:0 0 10px${hold?'':';visibility:hidden'}"${hold?'':' aria-hidden="true"'}><span>🎯 Vytáhni šipky – pak hází <b>${nm(st.p)}</b>.</span><button class="b sm" data-act="pnext"${hold?'':' tabindex="-1"'}>Další hráč ▶</button></div>`;
@@ -1635,7 +1663,7 @@ function pgGameHtml(){
   // s kamerou je terč vidět pořád (stabilní obrazovka), mění se jen značky šipek
   const BD=!(cfg.ad||mt)?'':`<div class="muted" style="text-align:center">Kam šly šipky</div><div class="bwrap" style="width:min(240px,60vw)"><div class="bsvg">${makeBoard(g.hl&&!st.over?g.hl(sv,G):null)}</div>${mt?adBoard(dartMarks(mt.d.map(d=>({x:d.x,y:d.y,h:g.hit?g.hit(d):dv(d,mt)>0})))):''}</div>`;
   if(!st.over||pedit!=null)K=pgKeys(st);
-  if(!st.over)P=`<div class="pgp">${G.pl.map((n,i)=>{const x=g.tile(st.pl[i],st,G,i);return `<div class="tile${i===sv.p?' cur':''}"><span class="lbl">${esc(n)}</span><span class="v">${x.v}</span><small>${x.sub}</small></div>`;}).join('')}</div>`;
+  if(!st.over)P=`<div class="pgp">${G.pl.map((n,i)=>{const x=g.tile(st.pl[i],st,G,i);return `<div class="tile${i===sv.p?' cur':''}${x.cls?' '+x.cls:''}"><span class="lbl">${esc(n)}</span><span class="v">${x.v}</span><small>${x.sub}</small></div>`;}).join('')}</div>`;
   if(st.T.length)L=`<div class="card"><button class="howbtn" data-act="plog">${plog?'▾':'▸'} Průběh hry (${st.T.length} ${st.T.length===1?'tah':st.T.length<5?'tahy':'tahů'}) – ťuknutím na šipku ji opravíš</button>${plog?st.T.slice().reverse().map(t=>`<div class="pgprev"><span class="muted">kolo ${t.rd} · <b>${nm(t.p)}</b>:</span>${t.d.map(pgChip).join('')}<span class="muted">= ${tv(t)}${ttl}</span></div>`).join(''):''}</div>`;
   if(pscroll){pscroll=false;after.push(()=>{const k=$('.pgk');if(k)k.scrollIntoView({block:'nearest',behavior:'smooth'});});}
   return top+`<div class="pgg"><div class="pga">${A}</div><div class="pgk">${K}</div><div class="pgpp">${BD}${P}</div><div class="pgl">${L}</div></div>`;
