@@ -85,6 +85,19 @@ select{font:inherit;padding:8px 10px;border-radius:8px;background:var(--card);co
 @keyframes celepop{0%{transform:scale(.2) rotate(-8deg)}100%{transform:scale(1)}}
 @keyframes celein{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){.cele,.cele b{animation:none}.cele i{display:none}}
+/* Cricket tabulka a piškvorky */
+.crk table{font-variant-numeric:tabular-nums}
+.crk th,.crk td{text-align:center!important;padding:4px 6px}
+.crk tbody th{font-size:20px;font-weight:900;color:var(--tx)}
+.crk td{font-size:24px;font-weight:900;color:var(--s1)}
+.crk .cur{background:color-mix(in srgb,var(--s1) 14%,transparent)}
+.crk tr.dead td,.crk tr.dead th{opacity:.3}
+.ttt{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:330px;margin:0 auto 10px}
+.ttt div{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid var(--line);border-radius:10px;background:var(--card);font-weight:900}
+.ttt div b{font-size:clamp(32px,10vw,56px);line-height:1;min-height:1em}
+.ttt div small{font-size:16px;color:var(--tx2)}
+.ttt .x{border-color:var(--s1)}.ttt .x b{color:var(--s1)}
+.ttt .o{border-color:var(--s2)}.ttt .o b{color:var(--s2)}
 /* stav Autodarts: aura kolem terče */
 body.ad-ok .bwrap .bsvg,body.ad-wait .bwrap .bsvg,body.ad-bad .bwrap .bsvg{border-radius:50%}
 body.ad-wait .bwrap .bsvg{box-shadow:0 0 0 2px color-mix(in srgb,var(--adwait) 75%,transparent),0 0 12px 2px color-mix(in srgb,var(--adwait) 35%,transparent),0 0 40px 10px color-mix(in srgb,var(--adwait) 14%,transparent)}
@@ -659,6 +672,7 @@ function makeBoard(hl){
     const i=BOARD_ORDER.indexOf(hl.n);
     const glow=c=>`fill:${c};filter:drop-shadow(0 0 5px ${c})`;
     if(hl.type==='D'&&i>=0){const c=i%2===0?'var(--hl)':'var(--hlg)';h=`<path d="${seg(93.2,102,i)}" style="${glow(c)}"/>`;}
+    else if(hl.type==='T'&&i>=0){const c=i%2===0?'var(--hl)':'var(--hlg)';h=`<path d="${seg(56.5,64.6,i)}" style="${glow(c)}"/>`;}
     else if(hl.type==='S'&&i>=0) h=`<path d="${seg(62.9,95.3,i)+seg(9.4,58.2,i)}" style="${glow('var(--hls)')}"/>`;
     else if(hl.type==='B') h=`<circle r="6" style="${glow('var(--hl)')}"/>`;
   }
@@ -826,7 +840,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 09:55';
+const BUILD='verze 17. 11. 2026, 10:07';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1222,8 +1236,23 @@ function addBob(n){
 // za ní volitelně poloha z kamery "@x,y" a "*" = ručně opraveno. Tah = vždy 3 záznamy (kromě tahu, kterým hra skončí);
 // stav hry se vždy přepočítá z darts (pgReplay), proto jde opravit kterákoli šipka. Ukládá se jen v tomto zařízení.
 const LS_PG='darts_party_v1',LS_PD='darts_pdraft_v1',LS_PC='darts_party_cfg';
+// pomocné konstanty párty her
+const CR=[15,16,17,18,19,20,25];                       // Cricket
+const HI=[15,16,'D',17,18,'T',19,20,'B'];              // Halve It
+const ACS=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,25]; // Around the Clock
+const CDS=[10,11,12,13,14,15,16,17,18,19,20].map(n=>({n,m:3})).concat([{n:25,m:1},{n:25,m:2}]); // Chase the Dragon
+const DK='DONKEY',TTL=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function hiOk(d,q){if(!d.mu)return false;if(q==='D')return d.mu===2;if(q==='T')return d.mu===3;if(q==='B')return d.n===25;return d.n===q;}
+function hiLbl(q){return q==='D'?'Double':q==='T'?'Triple':q==='B'?'Bull':q;}
+function rndNums(N){const a=Array.from({length:20},(_,i)=>i+1);for(let i=19;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a.slice(0,N);}
+function cdLbl(q){return q.n===25?(q.m===2?'Bull':'25'):'T'+q.n;}
+// vyřazení hráče (Killer, Blind Killer, Donkey) a konec, když zbývá jeden
+function pgOut(st,i){st.pl[i].out=1;st.out[i]=true;(st.el=st.el||[]).push(i);const al=st.pl.filter(y=>!y.out).length;if(st.N>1?al<=1:al===0)st.over=true;}
+function pgRankOut(st){const al=st.pl.map((_,p)=>p).filter(p=>!st.pl[p].out),el=(st.el||[]).slice().reverse();return al.map(p=>({p,s:st.pl[p].lv!=null?st.pl[p].lv:0,pl:1})).concat(el.map((p,i)=>({p,s:0,pl:al.length+1+i})));}
+// vítěz okamžitě (st.win) a ostatní podle klíče (vyšší = lepší)
+function pgRankWin(st,key){const w=st.win,o=st.pl.map((x,p)=>({p,s:key(x),x})).filter(x=>x.p!==w).sort((a,b)=>b.s-a.s);o.forEach(x=>{x.pl=(w!=null?2:1)+o.filter(y=>y.s>x.s).length;});return (w!=null?[{p:w,s:key(st.pl[w]),pl:1}]:[]).concat(o.map(x=>({p:x.p,s:x.s,pl:x.pl})));}
 const PG={
- ki:{n:'Killer',cz:'Zabiják',ok:1,desc:'Každý hráč má své číslo (náhodně, nebo podle hodu slabší rukou) a 3 nebo 5 životů. Nejdřív musíš trefit double svého čísla – tím se staneš killerem. Pak každým zásahem doublu čísla soupeře mu bereš život. Killer, který trefí double svého čísla, bere život sám sobě. Kdo přijde o všechny životy, vypadává; vyhrává poslední přeživší.',
+ ki:{n:'Killer',cz:'Zabiják',ok:1,minP:2,desc:'Každý hráč má své číslo (náhodně, nebo podle hodu slabší rukou) a 3 nebo 5 životů. Nejdřív musíš trefit double svého čísla – tím se staneš killerem. Pak každým zásahem doublu čísla soupeře mu bereš život. Killer, který trefí double svého čísla, bere život sám sobě. Kdo přijde o všechny životy, vypadává; vyhrává poslední přeživší.',
   opt:{l:{l:'Životy',v:[3,5],d:3},pk:{l:'Čísla',v:['los','ruka'],t:{los:'náhodně',ruka:'hod slabší rukou'},d:'los'}},
   // čísla hráčů jsou v G.nums (los při založení hry, nebo postupně hodem slabší rukou před hrou)
   setup(G){const N=G.pl.length;if(G.opt.pk==='ruka')G.nums=G.pl.map(()=>null);else{const a=Array.from({length:20},(_,i)=>i+1);for(let i=19;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}G.nums=a.slice(0,N);}},
@@ -1245,7 +1274,27 @@ const PG={
    key:b=>b.w*1e4+b.sc.reduce((a,c)=>a+((c.x&&c.x.kills)||0),0)/b.g,
    row:b=>{const K=b.sc.reduce((a,c)=>a+((c.x&&c.x.kills)||0),0);return [b.g,b.w,fP(pc(b.w,b.g)),K,fN(K/b.g)];},
    note:'Řazeno podle výher, při shodě podle Ø zabití na hru.'}},
- cr:{n:'Cricket',cz:'Kriket'},
+ cr:{n:'Cricket',cz:'Kriket',ok:1,desc:'Hraje se na čísla 15–20 a Bull. Single = 1 značka, double 2, triple 3 (25 = 1, Bull = 2). Třemi značkami číslo zavřeš; další značky na zavřeném čísle ti dávají body (hodnota čísla), dokud ho nezavřou i soupeři. Vyhrává, kdo zavře všechna čísla a má nejvíc bodů. V Cut-throat jdou body soupeřům, kteří číslo ještě nezavřeli, a vyhrává nejméně bodů. Po posledním kole rozhodují body (při shodě značky).',
+  opt:{v:{l:'Varianta',v:['std','ct'],t:{std:'klasický',ct:'Cut-throat'},d:'std'},r:{l:'Max. kol',v:[15,20,25],d:20}},
+  init:()=>({m:{15:0,16:0,17:0,18:0,19:0,20:0,25:0},s:0,mk:0,n:0}),
+  dart(st,d,G){const x=st.pl[st.p],N=d.n,ct=G.opt.v==='ct';d.mk=0;if(!d.mu||!CR.includes(N))return;
+    for(let k=0;k<d.mu;k++){
+      if(x.m[N]<3){x.m[N]++;x.mk++;d.mk++;continue;}
+      const op=st.pl.filter((y,i)=>i!==st.p&&y.m[N]<3);if(!op.length)continue;
+      x.mk++;d.mk++;if(ct)op.forEach(y=>{y.s+=N;});else{x.s+=N;d.pts=(d.pts||0)+N;}}
+    if(CR.every(q=>x.m[q]>=3)&&st.pl.every((y,i)=>i===st.p||(ct?x.s<=y.s:x.s>=y.s))){st.win=st.p;st.over=true;}},
+  turn(st,t){st.pl[t.p].n++;},
+  rounds:G=>G.opt.r||20,
+  rank(st,G){const ct=G.opt.v==='ct',w=st.win,k=x=>(ct?-x.s:x.s)*1e3+x.mk,o=st.pl.map((x,p)=>({p,s:x.s,k:k(x)})).filter(x=>x.p!==w).sort((a,b)=>b.k-a.k);o.forEach(x=>{x.pl=(w!=null?2:1)+o.filter(y=>y.k>x.k).length;});return (w!=null?[{p:w,s:st.pl[w].s,pl:1}]:[]).concat(o.map(x=>({p:x.p,s:x.s,pl:x.pl})));},
+  cells:(st,G)=>[{lbl:'Body',v:st.pl[st.p].s},{lbl:'Kolo',v:st.rd+'/'+(G.opt.r||20)}],
+  ex(st,G,sv){const sym=m=>m>=3?'⊗':m===2?'✕':m===1?'/':'';return `<div class="card scroll crk"><table><thead><tr><th></th>${G.pl.map((n,i)=>`<th class="${i===sv.p&&!st.over?'cur':''}">${esc(n)}</th>`).join('')}</tr></thead><tbody>${CR.slice().reverse().map(q=>`<tr class="${st.pl.every(y=>y.m[q]>=3)?'dead':''}"><th>${q===25?'Bull':q}</th>${st.pl.map((y,i)=>`<td class="${i===sv.p&&!st.over?'cur':''}">${sym(y.m[q])}</td>`).join('')}</tr>`).join('')}<tr><th>Body</th>${st.pl.map((y,i)=>`<td class="${i===sv.p&&!st.over?'cur':''}"><b>${y.s}</b></td>`).join('')}</tr></tbody></table></div>`;},
+  hit:d=>d.mk>0,dsub:d=>d.mk?'+'+d.mk+' zn.'+(d.pts?' · '+d.pts+' b.':''):'–',tt:t=>t.d.reduce((a,d)=>a+(d.mk||0),0),ttl:'značek',
+  tile:x=>({v:x.s,sub:'MPR '+(x.n?fN(x.mk/x.n,2):'–')}),
+  resH:['Body','Značek','MPR'],res:x=>[x.s,x.mk,x.n?fN(x.mk/x.n,2):'–'],
+  lb:{h:['Her','Výher','% výher','MPR','Ø body'],
+   key:b=>{const M=b.sc.reduce((a,c)=>a+c.x.mk,0),T=b.sc.reduce((a,c)=>a+c.x.n,0);return b.w*1e4+(T?M/T:0);},
+   row:b=>{const M=b.sc.reduce((a,c)=>a+c.x.mk,0),T=b.sc.reduce((a,c)=>a+c.x.n,0);return [b.g,b.w,fP(pc(b.w,b.g)),T?fN(M/T,2):'–',fN(avg(b.sc.map(c=>c.s)))];},
+   note:'MPR = průměrný počet značek na kolo (3 šipky). Řazeno podle výher, při shodě podle MPR.'}},
  sh:{n:'Shanghai',cz:'Šanghaj',ok:1,desc:'Kolo 1 se hází na jedničky, kolo 2 na dvojky atd. Body dává jen číslo kola: single 1×, double 2×, triple 3× jeho hodnota. Kdo v jednom tahu trefí single, double i triple čísla kola (Shanghai), okamžitě vyhrává. Jinak po posledním kole vyhrává nejvyšší skóre.',
   opt:{r:{l:'Počet kol',v:[7,9,20],d:7}},
   init:()=>({s:0,n:0,last:0,sh:0}),
@@ -1262,10 +1311,70 @@ const PG={
    key:b=>b.w*1e4+(b.t?b.sc.reduce((a,c)=>a+c.s,0)/b.t:0),
    row:b=>{const S=b.sc.reduce((a,c)=>a+c.s,0);return [b.g,b.w,fP(pc(b.w,b.g)),b.sc.filter(c=>c.sh).length||'–',b.t?fN(S/b.t):'–',Math.max(...b.sc.map(c=>c.s))];},
    note:'Řazeno podle výher, při shodě podle Ø bodů na kolo.'}},
- hi:{n:'Halve It',cz:'Půlení'},
- ac:{n:'Around the Clock',cz:'Obíhačka'},
- go:{n:'Gotcha!',cz:'Mám tě!'},
- bb:{n:'Baseball',cz:'Baseball'},
+ hi:{n:'Halve It',cz:'Půlení',ok:1,desc:'Každé kolo má svůj cíl: 15, 16, libovolný double, 17, 18, libovolný triple, 19, 20 a Bull (9 kol). Body dávají jen šipky v cíli (plná hodnota šipky). Kdo v kole cíl netrefí ani jednou, má skóre vydělené dvěma. Po 9 kolech vyhrává nejvyšší skóre.',
+  init:()=>({s:0,n:0,half:0,last:null}),
+  dv:(d,t)=>hiOk(d,HI[t.rd-1])?d.v:0,
+  dart(st,d){if(hiOk(d,HI[st.t.rd-1]))st.pl[st.p].s+=d.v;},
+  turn(st,t){const x=st.pl[t.p],v=t.d.reduce((a,d)=>a+(hiOk(d,HI[t.rd-1])?d.v:0),0);x.n++;x.last=v;if(!v){x.s=Math.floor(x.s/2);x.half++;}},
+  rounds:()=>9,
+  rank:st=>st.pl.map((x,p)=>({p,s:x.s})).sort((a,b)=>b.s-a.s),
+  cells:st=>[{lbl:'Cíl · kolo '+st.rd+'/9',v:hiLbl(HI[st.rd-1])},{lbl:'Skóre',v:st.pl[st.p].s}],
+  hl:st=>{const q=HI[st.rd-1];return typeof q==='number'?{type:'S',n:q}:q==='B'?{type:'B'}:null;},
+  ev(B,A,G){for(let p=0;p<A.N;p++)if(A.pl[p].half>B.pl[p].half)return ['½ '+G.pl[p]+' půlí','skóre teď '+A.pl[p].s];return null;},
+  tile:x=>({v:x.s,sub:x.last==null?'&nbsp;':x.last?'minulé kolo +'+x.last:'½ minulé kolo'}),
+  resH:['Body','Půlení'],res:x=>[x.s,x.half],
+  lb:{h:['Her','Výher','% výher','Ø skóre','Nejlepší','Ø půlení'],
+   key:b=>b.w*1e4+avg(b.sc.map(c=>c.s)),
+   row:b=>[b.g,b.w,fP(pc(b.w,b.g)),fN(avg(b.sc.map(c=>c.s))),Math.max(...b.sc.map(c=>c.s)),fN(avg(b.sc.map(c=>c.x.half)))],
+   note:'Řazeno podle výher, při shodě podle Ø skóre.'}},
+ ac:{n:'Around the Clock',cz:'Obíhačka',ok:1,desc:'Každý postupuje čísly 1, 2 … 20 a nakonec Bull. Na další číslo jde po zásahu aktuálního (single, double i triple). Ve variantě „násobky přeskakují“ posune double o 2 a triple o 3 čísla (Bull se ale trefit musí). Kdo první trefí Bull, vyhrává.',
+  opt:{sk:{l:'Násobky přeskakují',v:['ne','ano'],t:{ne:'ne',ano:'ano (D +2, T +3)'},d:'ne'}},
+  init:()=>({i:0,dn:0}),
+  dart(st,d,G){const x=st.pl[st.p];if(d.s!=='-')x.dn++;if(x.i>=21)return;const q=ACS[x.i];if(!d.mu||d.n!==q)return;d.ok=1;
+    if(q===25){x.i=21;st.win=st.p;st.over=true;}else x.i=Math.min(20,x.i+(G.opt.sk==='ano'?d.mu:1));},
+  rank:st=>pgRankWin(st,x=>x.i),
+  cells:st=>{const x=st.pl[st.p],q=ACS[Math.min(x.i,20)];return [{lbl:'Cíl · '+Math.min(x.i+1,21)+'/21',v:q===25?'Bull':q},{lbl:'Šipek',v:x.dn}];},
+  hl:st=>{const q=ACS[Math.min(st.pl[st.p].i,20)];return q===25?{type:'B'}:{type:'S',n:q};},
+  hit:d=>!!d.ok,dsub:d=>d.ok?'✓':'–',tt:t=>t.d.filter(d=>d.ok).length,ttl:'zásahů',
+  tile:x=>({v:x.i>=21?'✓':ACS[x.i]===25?'Bull':ACS[x.i],sub:'pole '+Math.min(x.i+1,21)+'/21'}),
+  resH:['Pole','Šipek'],res:x=>[Math.min(x.i,21)+'/21',x.dn],
+  lb:{h:['Her','Výher','% výher','Ø postup','Ø šipek na výhru'],
+   key:b=>b.w*1e4+avg(b.sc.map(c=>c.x.i)),
+   row:b=>{const W=b.sc.filter(c=>c.pl===1);return [b.g,b.w,fP(pc(b.w,b.g)),fN(avg(b.sc.map(c=>Math.min(c.x.i,21))))+'/21',W.length?fN(avg(W.map(c=>c.x.dn))):'–'];},
+   note:'Řazeno podle výher, při shodě podle průměrného postupu.'}},
+ go:{n:'Gotcha!',cz:'Mám tě!',ok:1,desc:'Všichni začínají na 0 a sčítají body (single, double, triple, 25, Bull 50). Cílem je dosáhnout přesně 301. Kdo přetáhne, vrací se na skóre ze začátku tahu a zbytek tahu propadá. Když máš po své šipce stejné skóre jako soupeř, soupeř se vrací na 0 – „Mám tě!“. Vyhrává, kdo první dosáhne přesně cíle.',
+  opt:{t:{l:'Cíl',v:[301,501],d:301}},
+  init:()=>({s:0,n:0,got:0,bust:0}),
+  dart(st,d,G){const x=st.pl[st.p],t=st.t,T=G.opt.t||301;if(t.b0==null)t.b0=x.s;if(t.bust||!d.v)return;const v=x.s+d.v;
+    if(v>T){x.s=t.b0;t.bust=1;x.bust++;d.fx='přetaženo';return;}
+    x.s=v;d.fx='+'+d.v;if(v===T){st.win=st.p;st.over=true;return;}
+    st.pl.forEach((y,i)=>{if(i!==st.p&&y.s===v){y.s=0;x.got++;d.fx='Mám tě! '+G.pl[i];}});},
+  turn(st,t){st.pl[t.p].n++;},
+  rank:st=>pgRankWin(st,x=>x.s),
+  cells:(st,G)=>{const x=st.pl[st.p];return [{lbl:'Skóre',v:x.s},{lbl:'Zbývá',v:(G.opt.t||301)-x.s}];},
+  hit:d=>d.v>0&&d.fx!=='přetaženo',dsub:d=>d.fx||'–',
+  ev(B,A,G){for(let p=0;p<A.N;p++)if(A.pl[p].got>B.pl[p].got){const v=A.pl.findIndex((y,i)=>B.pl[i].s>0&&y.s===0&&i!==p);return ['🎯 Mám tě!',(v>=0?G.pl[v]+' jde na 0':'soupeř jde na 0')+' – '+G.pl[p]];}return null;},
+  tile:(x,st,G)=>({v:x.s,sub:'zbývá '+((G.opt.t||301)-x.s)}),
+  resH:['Body','Mám tě','Přetažení'],res:x=>[x.s,x.got,x.bust],
+  lb:{h:['Her','Výher','% výher','Mám tě','Ø přetažení'],
+   key:b=>b.w*1e4+b.sc.reduce((a,c)=>a+c.x.got,0),
+   row:b=>[b.g,b.w,fP(pc(b.w,b.g)),b.sc.reduce((a,c)=>a+c.x.got,0),fN(avg(b.sc.map(c=>c.x.bust)))],
+   note:'„Mám tě“ = kolikrát hráč poslal soupeře na nulu.'}},
+ bb:{n:'Baseball',cz:'Baseball',ok:1,desc:'Hraje se 9 směn, ve směně N se hází na číslo N. Single = 1 bod (run), double = 2, triple = 3; ostatní šipky nic. Po 9 směnách vyhrává nejvíc bodů, při shodě je remíza.',
+  init:()=>({s:0,n:0,last:null}),
+  dv:(d,t)=>d.n===t.rd&&d.mu?d.mu:0,
+  dart(st,d){if(d.n===st.t.rd&&d.mu)st.pl[st.p].s+=d.mu;},
+  turn(st,t){const x=st.pl[t.p];x.n++;x.last=t.d.reduce((a,d)=>a+(d.n===t.rd&&d.mu?d.mu:0),0);},
+  rounds:()=>9,
+  rank:st=>st.pl.map((x,p)=>({p,s:x.s})).sort((a,b)=>b.s-a.s),
+  cells:st=>[{lbl:'Směna '+st.rd+'/9 · cíl',v:st.rd},{lbl:'Body',v:st.pl[st.p].s}],
+  hl:st=>({type:'S',n:st.rd}),
+  tile:x=>({v:x.s,sub:x.last==null?'&nbsp;':'minulá směna +'+x.last}),
+  resH:['Body'],res:x=>[x.s],
+  lb:{h:['Her','Výher','% výher','Ø bodů','Nejlepší'],
+   key:b=>b.w*1e4+avg(b.sc.map(c=>c.s)),
+   row:b=>[b.g,b.w,fP(pc(b.w,b.g)),fN(avg(b.sc.map(c=>c.s))),Math.max(...b.sc.map(c=>c.s))],
+   note:'Řazeno podle výher, při shodě podle Ø bodů.'}},
  cu:{n:'Count Up',cz:'Nahoru',ok:1,pts:1,desc:'Každý hráč hází v kole 3 šipky a body se sčítají (číslo = single, double 2×, triple 3×, 25 a Bull 50). Po posledním kole vyhrává nejvyšší součet.',
   opt:{r:{l:'Počet kol',v:[6,8,10,12],d:8}},
   init:()=>({s:0,n:0}),
@@ -1281,12 +1390,98 @@ const PG={
    key:b=>avg(b.sc.map(x=>x.s*8/(x.r||8))),
    row:b=>{const m=b.sc.reduce((a,c)=>c.s*8/(c.r||8)>a.s*8/(a.r||8)?c:a);return [b.g,b.w,fN(avg(b.sc.map(x=>x.s*8/(x.r||8)))),m.s+' <span class="muted">('+(m.r||8)+' kol)</span>',b.t?fN(b.pts/b.t):'–'];},
    note:'Řazeno podle Ø skóre přepočteného na 8 kol, aby šly srovnat hry s různým počtem kol.'}},
- hh:{n:'Hare and Hounds',cz:'Zajíc a psi'},
- fv:{n:'Fives',cz:'Pětky'},
- dk:{n:'Donkey',cz:'Osel'},
- tt:{n:'Tic-Tac-Toe',cz:'Piškvorky'},
- bk:{n:'Blind Killer',cz:'Slepý zabiják'},
- cd:{n:'Chase the Dragon',cz:'Honba za drakem'}
+ hh:{n:'Hare and Hounds',cz:'Zajíc a psi',ok:1,minP:2,desc:'První hráč v pořadí je zajíc, ostatní jsou psi. Postupuje se po terči po směru hodin (20, 1, 18, 4 …): na další pole jdeš po zásahu čísla, na které míříš (single, double i triple). Zajíc začíná na 20 a musí oběhnout celý terč zpět na 20. Psi začínají o několik polí za ním. Pes, který dorazí na pole se zajícem, ho chytil a vyhrává; když zajíc oběhne terč dřív, vyhrává zajíc.',
+  opt:{g:{l:'Náskok zajíce (polí)',v:[3,4,5],d:4}},
+  init:(G,p)=>({r:p?'pes':'zajíc',k:p?-(G.opt.g||4):0,dn:0}),
+  dart(st,d){const x=st.pl[st.p];if(d.s!=='-')x.dn++;const tg=BOARD_ORDER[(x.k+41)%20];if(!d.mu||d.n!==tg)return;x.k++;d.ok=1;
+    const h=st.pl[0];if(st.p===0){if(h.k>=20){st.win=0;st.over=true;}}else if(x.k>=h.k){st.win=st.p;st.over=true;d.fx='chycen!';}},
+  rank:st=>pgRankWin(st,x=>x.k),
+  cells:st=>{const x=st.pl[st.p],h=st.pl[0];return [{lbl:(st.p?'🐕 Pes':'🐇 Zajíc')+' · cíl',v:BOARD_ORDER[(x.k+41)%20]},st.p?{lbl:'Za zajícem',v:(h.k-x.k)+' polí'}:{lbl:'Do cíle',v:(20-x.k)+' polí'}];},
+  hl:st=>({type:'S',n:BOARD_ORDER[(st.pl[st.p].k+41)%20]}),
+  hit:d=>!!d.ok,dsub:d=>d.fx||(d.ok?'✓ krok':'–'),tt:t=>t.d.filter(d=>d.ok).length,ttl:'kroků',
+  tile:(x,st)=>({v:(x.r==='zajíc'?'🐇 ':'🐕 ')+BOARD_ORDER[(x.k+40)%20],sub:x.r==='zajíc'?'zajíc · do cíle '+(20-x.k):'pes · za zajícem '+(st.pl[0].k-x.k)}),
+  resH:['Role','Kroků'],res:x=>[x.r,x.k],
+  lb:{h:['Her','Výher','Výher jako zajíc','Výher jako pes'],
+   key:b=>b.w,
+   row:b=>[b.g,b.w,b.sc.filter(c=>c.pl===1&&c.x.r==='zajíc').length,b.sc.filter(c=>c.pl===1&&c.x.r==='pes').length],
+   note:'Zajíc je vždy první hráč v pořadí – při odvetě se role posunou.'}},
+ fv:{n:'Fives',cz:'Pětky',ok:1,desc:'Body se počítají jen z tahu, jehož součet (všech tří šipek) je dělitelný 5 – pak dostaneš součet ÷ 5 bodů (např. 45 = 9 bodů). Když některá šipka mine terč, tah se nepočítá. Vyhrává, kdo první dosáhne přesně cílového počtu bodů; kdo by přetáhl, tah se mu nepočítá.',
+  opt:{t:{l:'Cíl (bodů)',v:[51,31],d:51}},
+  init:()=>({s:0,n:0,last:null}),
+  dart(){},
+  turn(st,t,G){const x=st.pl[t.p],T=G.opt.t||51,tot=t.d.reduce((a,d)=>a+d.v,0),miss=t.d.some(d=>!d.mu);x.n++;let g=0;
+    if(miss)t.why='mimo terč';else if(tot%5)t.why='nedělitelné 5';else{g=tot/5;if(x.s+g>T){t.why='přetaženo';g=0;}}
+    t.g=g;x.s+=g;x.last=g;if(x.s===T){st.win=t.p;st.over=true;}},
+  rank:st=>pgRankWin(st,x=>x.s),
+  cells:(st,G)=>{const x=st.pl[st.p];return [{lbl:'Body',v:x.s},{lbl:'Do '+(G.opt.t||51),v:(G.opt.t||51)-x.s}];},
+  tt:t=>{if(t.g!=null)return t.g;const v=t.d.reduce((a,d)=>a+d.v,0);return t.d.some(d=>!d.mu)?0:v%5?'–':v/5;},ttl:'bodů',
+  tile:x=>({v:x.s,sub:x.last==null?'&nbsp;':x.last?'minulé kolo +'+x.last:'minulé kolo 0'}),
+  resH:['Body'],res:x=>[x.s],
+  lb:{h:['Her','Výher','% výher','Ø bodů na kolo'],
+   key:b=>b.w*1e4+(b.t?b.sc.reduce((a,c)=>a+c.s,0)/b.t:0),
+   row:b=>[b.g,b.w,fP(pc(b.w,b.g)),b.t?fN(b.sc.reduce((a,c)=>a+c.s,0)/b.t,2):'–'],
+   note:'Řazeno podle výher, při shodě podle Ø bodů na kolo.'}},
+ dk:{n:'Donkey',cz:'Osel',ok:1,minP:2,desc:'Hráč na tahu musí svým součtem tří šipek vyrovnat nebo překonat laťku – součet předchozího hráče. Když se to povede, jeho součet je nová laťka. Kdo laťku nepřekoná, dostane další písmeno ze slova DONKEY a další hráč hází volně (nastaví novou laťku). Kdo má celé DONKEY, vypadává; vyhrává poslední ve hře.',
+  init:()=>({l:0,n:0,out:0}),
+  dart(){},
+  turn(st,t){const x=st.pl[t.p],tot=t.d.reduce((a,d)=>a+d.v,0);x.n++;
+    if(st.tg==null){st.tg=tot;t.res='laťka '+tot;}
+    else if(tot>=st.tg){st.tg=tot;t.res='✓ '+tot;}
+    else{x.l++;t.res='✗ '+DK.slice(0,x.l);st.tg=null;if(x.l>=6)pgOut(st,t.p);}},
+  rank:st=>pgRankOut(st),
+  cells:st=>{const x=st.pl[st.p];return [{lbl:'Laťka',v:st.tg==null?'volně':'≥ '+st.tg},{lbl:'Písmena',v:DK.slice(0,x.l)||'–'}];},
+  ev(B,A,G){for(let p=0;p<A.N;p++){if(A.pl[p].out&&!B.pl[p].out)return ['💀 '+G.pl[p]+' je DONKEY',A.pl.filter(y=>!y.out).length+' hráči ve hře'];if(A.pl[p].l>B.pl[p].l)return ['🫏 '+G.pl[p]+': '+DK.slice(0,A.pl[p].l),'další hází volně'];}return null;},
+  tile:x=>({v:x.out?'✖':DK.slice(0,x.l)||'–',sub:x.out?'vypadl':(6-x.l)+' do konce'}),
+  resH:['Písmena'],res:x=>[DK.slice(0,x.l)||'–'],
+  lb:{h:['Her','Výher','% výher','Ø písmen'],
+   key:b=>b.w*1e4-avg(b.sc.map(c=>c.x.l)),
+   row:b=>[b.g,b.w,fP(pc(b.w,b.g)),fN(avg(b.sc.map(c=>c.x.l)))],
+   note:'Řazeno podle výher, při shodě podle nejméně písmen.'}},
+ tt:{n:'Tic-Tac-Toe',cz:'Piškvorky',ok:1,minP:2,maxP:2,desc:'Pro 2 hráče (✕ a ○). Hrací plocha 3×3 má náhodná čísla, uprostřed je Bull. Pole získáš zásahem jeho čísla – podle volby jakýmkoli segmentem, nebo jen doublem. Obsazené pole už nikdo nepřebere. Vyhrává, kdo první získá tři pole v řadě (vodorovně, svisle nebo úhlopříčně); když se plocha zaplní bez trojice, je remíza.',
+  opt:{c:{l:'Pole získáš',v:['any','dbl'],t:{any:'jakýmkoli zásahem',dbl:'jen doublem (Bull = 50)'},d:'any'}},
+  setup(G){const a=rndNums(8);G.grid=a.slice(0,4).concat([25],a.slice(4));},
+  init:()=>({c:0,n:0}),
+  dart(st,d,G){st.g=st.g||Array(9).fill(-1);if(!d.mu||(G.opt.c==='dbl'&&d.mu!==2))return;const i=G.grid.indexOf(d.n);if(i<0||st.g[i]>=0)return;
+    st.g[i]=st.p;st.pl[st.p].c++;d.ok=1;
+    if(TTL.some(l=>l.every(k=>st.g[k]===st.p))){st.win=st.p;st.over=true;}else if(st.g.every(v=>v>=0))st.over=true;},
+  turn(st,t){st.pl[t.p].n++;},
+  rank:st=>st.win!=null?[{p:st.win,s:st.pl[st.win].c,pl:1},{p:1-st.win,s:st.pl[1-st.win].c,pl:2}]:st.pl.map((x,p)=>({p,s:x.c,pl:1})),
+  cells:st=>[{lbl:'Hraje za',v:st.p?'○':'✕'},{lbl:'Polí',v:st.pl[st.p].c}],
+  ex(st,G){const g=st.g||Array(9).fill(-1),dbl=G.opt.c==='dbl';return `<div class="ttt">${G.grid.map((n,i)=>`<div class="${g[i]===0?'x':g[i]===1?'o':''}"><b>${g[i]===0?'✕':g[i]===1?'○':''}</b><small>${n===25?'Bull':(dbl?'D':'')+n}</small></div>`).join('')}</div>`;},
+  hit:d=>!!d.ok,dsub:d=>d.ok?'✓ pole':'–',tt:t=>t.d.filter(d=>d.ok).length,ttl:'polí',
+  tile:(x,st,G,i)=>({v:i?'○':'✕',sub:x.c+' polí'}),
+  resH:['Polí'],res:x=>[x.c],
+  lb:{h:['Her','Výher','% výher'],key:b=>b.w*1e4+pc(b.w,b.g),row:b=>[b.g,b.w,fP(pc(b.w,b.g))],note:'Remíza se počítá oběma jako výhra.'}},
+ bk:{n:'Blind Killer',cz:'Slepý zabiják',ok:1,minP:2,desc:'Každý hráč dostane tajné číslo – prohlédne si ho sám ťuknutím na „👁 své číslo“, ostatní se nedívají. Všichni hází na doubly: každý zásah doublu čísla nějakého hráče mu vezme život, i když je to tvoje vlastní číslo. Nikdo předem neví, čí číslo trefuje. Vyřazený hráč odkryje své číslo; vyhrává poslední přeživší.',
+  opt:{l:{l:'Životy',v:[3,5],d:3}},
+  setup(G){G.nums=rndNums(G.pl.length);},
+  init:(G,p)=>({n:G.nums[p],lv:G.opt.l||3,out:0,kills:0}),
+  dart(st,d){const x=st.pl[st.p];if(x.out||d.mu!==2||d.n>20)return;const o=st.pl.findIndex(y=>y.n===d.n&&!y.out);if(o<0)return;
+    const y=st.pl[o];y.lv--;d.fx=o===st.p?'zásah! (sám sebe)':'zásah!';if(o!==st.p)x.kills++;if(y.lv<=0)pgOut(st,o);},
+  rank:st=>pgRankOut(st),
+  cells:st=>[{lbl:'Číslo',v:'D?'},{lbl:'Životy',v:st.pl[st.p].lv}],
+  ex(st,G){return `<div class="chips" style="margin:0 0 10px"><span class="muted">👁 Své číslo:</span>${G.pl.map((n,i)=>st.pl[i].out?`<span class="chip done">${esc(n)}: D${st.pl[i].n}</span>`:`<button class="chip" data-act="pbk" data-i="${i}">${esc(n)}</button>`).join('')}</div>`;},
+  hit:d=>!!d.fx,dsub:d=>d.fx||'–',tt:t=>t.d.filter(d=>d.fx).length,ttl:'zásahů',
+  ev(B,A,G){for(let p=0;p<A.N;p++)if(A.pl[p].out&&!B.pl[p].out)return ['💀 '+G.pl[p]+' vypadává','jeho číslo bylo D'+A.pl[p].n];return null;},
+  tile:x=>({v:x.out?'✖':'♥ '+x.lv,sub:x.out?'vypadl · D'+x.n:'D?'}),
+  resH:['Životy','Číslo','Zásahy soupeřů'],res:x=>[x.out?0:x.lv,'D'+x.n,x.kills],
+  lb:{h:['Her','Výher','% výher','Zásahy soupeřů'],
+   key:b=>b.w*1e4+b.sc.reduce((a,c)=>a+c.x.kills,0),
+   row:b=>[b.g,b.w,fP(pc(b.w,b.g)),b.sc.reduce((a,c)=>a+c.x.kills,0)],
+   note:'Řazeno podle výher, při shodě podle zásahů soupeřů.'}},
+ cd:{n:'Chase the Dragon',cz:'Honba za drakem',ok:1,desc:'Postupně musíš trefit triple 10, 11, 12 … až 20, pak 25 a nakonec Bull (50). Na další cíl jdeš až po zásahu toho aktuálního. Kdo první trefí Bull, vyhrává.',
+  init:()=>({i:0,dn:0}),
+  dart(st,d){const x=st.pl[st.p];if(d.s!=='-')x.dn++;if(x.i>=13)return;const q=CDS[x.i];if(d.n!==q.n||d.mu!==q.m)return;x.i++;d.ok=1;if(x.i>=13){st.win=st.p;st.over=true;}},
+  rank:st=>pgRankWin(st,x=>x.i),
+  cells:st=>{const x=st.pl[st.p];return [{lbl:'Cíl · '+Math.min(x.i+1,13)+'/13',v:cdLbl(CDS[Math.min(x.i,12)])},{lbl:'Šipek',v:x.dn}];},
+  hl:st=>{const q=CDS[Math.min(st.pl[st.p].i,12)];return q.n===25?{type:'B'}:{type:'T',n:q.n};},
+  hit:d=>!!d.ok,dsub:d=>d.ok?'✓':'–',tt:t=>t.d.filter(d=>d.ok).length,ttl:'zásahů',
+  tile:x=>({v:x.i>=13?'✓':cdLbl(CDS[x.i]),sub:'cíl '+Math.min(x.i+1,13)+'/13'}),
+  resH:['Postup','Šipek'],res:x=>[Math.min(x.i,13)+'/13',x.dn],
+  lb:{h:['Her','Výher','% výher','Ø postup','Ø šipek na výhru'],
+   key:b=>b.w*1e4+avg(b.sc.map(c=>c.x.i)),
+   row:b=>{const W=b.sc.filter(c=>c.pl===1);return [b.g,b.w,fP(pc(b.w,b.g)),fN(avg(b.sc.map(c=>c.x.i)))+'/13',W.length?fN(avg(W.map(c=>c.x.dn))):'–'];},
+   note:'Řazeno podle výher, při shodě podle průměrného postupu.'}}
 };
 let pcfg=lsGet(LS_PC,null)||{pl:['Hráč 1','Hráč 2'],game:'cu',opt:{}};if(!pcfg.opt)pcfg.opt={};if(!(PG[pcfg.game]&&PG[pcfg.game].ok))pcfg.game='cu';
 let PGR=lsGet(LS_PD,null),pmul=1,pedit=null,plog=false,pconf=null,pscroll=false,pman=false,phold=false;
@@ -1327,7 +1522,7 @@ function celebrate(t,sub){
   for(let i=0;i<70;i++)c+=`<i style="left:${(Math.random()*100).toFixed(1)}%;background:${C[i%4]};animation-duration:${(2+Math.random()*2.5).toFixed(2)}s;animation-delay:${(Math.random()*1.2).toFixed(2)}s"></i>`;
   el.innerHTML=c+`<b>${esc(t)}</b><span>${esc(sub)}</span>`;el.onclick=()=>el.remove();document.body.appendChild(el);setTimeout(()=>el.remove(),6500);
 }
-function pgWin(A){if(A.sh){celebrate('Shanghai!','🎯 '+PGR.pl[A.sh.p]+' vyhrává · kolo '+A.sh.rd);return;}if(PG[PGR.game].cele){const c=PG[PGR.game].cele(A,PGR);celebrate(c[0],c[1]);return;}const g=PG[PGR.game],w=A.rank.filter(x=>x.pl===1).map(x=>PGR.pl[x.p]);say('🏆 '+w.join(' + '),(w.length>1?'Remíza':'Vítěz')+' · '+g.n+' · '+g.resH[0]+' '+A.rank[0].s);}
+function pgWin(A){if(A.sh){celebrate('Shanghai!','🎯 '+PGR.pl[A.sh.p]+' vyhrává · kolo '+A.sh.rd);return;}if(PG[PGR.game].cele){const c=PG[PGR.game].cele(A,PGR);celebrate(c[0],c[1]);return;}const g=PG[PGR.game],w=A.rank.filter(x=>x.pl===1).map(x=>PGR.pl[x.p]);celebrate(w.length>1?'Remíza':'🏆 '+w[0],(w.length>1?w.join(' + ')+' · ':'vítěz · ')+g.n);}
 function pgPush(recs){
   if(!PGR)return;const B=pgReplay(PGR);
   if(B.over){flash('Hra skončila – šipku opravíš ťuknutím, „↩ Vrátit poslední šipku“ hru obnoví.');return;}
@@ -1414,7 +1609,8 @@ function pgGameHtml(){
     if(hold||cfg.ad)A+=`<div class="note row spread" style="margin:0 0 10px${hold?'':';visibility:hidden'}"${hold?'':' aria-hidden="true"'}><span>🎯 Vytáhni šipky – pak hází <b>${nm(st.p)}</b>.</span><button class="b sm" data-act="pnext"${hold?'':' tabindex="-1"'}>Další hráč ▶</button></div>`;
   }
   if(!prev&&!st.over)A+=`<div class="pgprev"></div>`; // místo pro předchozí tah, ať se obrazovka po 1. tahu neposune
-  if(prev)A+=`<div class="pgprev"><span class="muted">${st.over?'Poslední':'Předchozí'} tah · <b>${nm(prev.p)}</b>:</span>${prev.d.map(pgChip).join('')}<span class="muted">= ${tv(prev)}${ttl}</span></div>`;
+  if(g.ex)A+=g.ex(st,G,sv);
+  if(prev)A+=`<div class="pgprev"><span class="muted">${st.over?'Poslední':'Předchozí'} tah · <b>${nm(prev.p)}</b>:</span>${prev.d.map(pgChip).join('')}<span class="muted">= ${tv(prev)}${ttl}${prev.res?' · '+esc(prev.res):prev.why?' · '+esc(prev.why):''}</span></div>`;
   const mt=cur&&cur.d.some(d=>d.x!=null)?cur:null; // značky jen pro rozehraný / dohozený tah, po vytažení zmizí
   // s kamerou je terč vidět pořád (stabilní obrazovka), mění se jen značky šipek
   const BD=!(cfg.ad||mt)?'':`<div class="muted" style="text-align:center">Kam šly šipky</div><div class="bwrap" style="width:min(240px,60vw)"><div class="bsvg">${makeBoard(g.hl&&!st.over?g.hl(sv):null)}</div>${mt?adBoard(dartMarks(mt.d.map(d=>({x:d.x,y:d.y,h:g.hit?g.hit(d):dv(d,mt)>0})))):''}</div>`;
@@ -1440,8 +1636,8 @@ function pgSetupHtml(){
   <div class="card"><b>Hra</b><div class="chips">${Object.keys(PG).map(k=>{const x=PG[k];return x.ok?`<button class="chip ${k===pcfg.game?'cur':''}" data-act="pgame" data-v="${k}">${x.n}</button>`:`<span class="chip" style="opacity:.4" title="Připravujeme">${x.n}</span>`;}).join('')}</div>
   <p class="muted" style="margin:4px 0"><b>${g.n}</b>: ${g.desc}</p>
   ${Object.keys(g.opt||{}).map(q=>`<label class="row" style="margin:6px 0"><span>${g.opt[q].l}</span><select data-popt="${q}">${g.opt[q].v.map(v=>`<option value="${v}"${v===o[q]?' selected':''}>${g.opt[q].t?g.opt[q].t[v]:v}</option>`).join('')}</select></label>`).join('')}
-  <p class="muted" style="margin:6px 0 0">Šedé hry přibudou postupně.</p></div></div>
-  <div><div class="card" style="text-align:center"><button class="b start" data-act="pstart" style="width:100%">▶ Hrát: ${g.n}</button><p class="muted" style="margin:8px 0 0">Všichni hází u jednoho terče, po 3 šipkách se střídá hráč. Šipky se zadávají na klávesnici Single / Double / Triple a číslo. S Autodarts se zapíšou samy a špatně přečtenou šipku opravíš ťuknutím na ni. Párty hry se ukládají jen v tomto zařízení a do statistik doublů se nepočítají.</p></div>`;
+  </div></div>
+  <div><div class="card" style="text-align:center"><button class="b start" data-act="pstart" style="width:100%"${g.minP&&pcfg.pl.length<g.minP||g.maxP&&pcfg.pl.length>g.maxP?' disabled':''}>▶ Hrát: ${g.n}</button>${g.minP&&pcfg.pl.length<g.minP||g.maxP&&pcfg.pl.length>g.maxP?`<p class="note" style="margin:8px 0 0">${g.n} je pro ${g.minP===g.maxP?'přesně '+g.minP:'aspoň '+g.minP} hráče – uprav seznam hráčů.</p>`:''}<p class="muted" style="margin:8px 0 0">Všichni hází u jednoho terče, po 3 šipkách se střídá hráč. Šipky se zadávají na klávesnici Single / Double / Triple a číslo. S Autodarts se zapíšou samy a špatně přečtenou šipku opravíš ťuknutím na ni. Párty hry se ukládají jen v tomto zařízení a do statistik doublů se nepočítají.</p></div>`;
   if(H.length)h+=`<div class="card scroll"><b>Odehrané hry</b><table><thead><tr><th>Datum</th><th>Hra</th><th style="text-align:left">Pořadí</th><th></th></tr></thead><tbody>${H.slice().reverse().slice(0,30).map(x=>{const rk=pgReplay(Object.assign({},x,{end:1})).rank;return `<tr><td>${fDL(x.ts)}</td><td>${PG[x.game].n}</td><td style="text-align:left;white-space:normal">${rk.map(r=>`${r.pl}. ${r.pl===1?'🏆 ':''}${esc(x.pl[r.p])} <b>${r.s}</b>`).join(' · ')}</td><td>${pconf==='h'+x.id?`<button class="b sm" data-act="phdel" data-id="${esc(x.id)}">Smazat</button>`:`<button class="b ghost sm" data-act="phask" data-id="${esc(x.id)}" aria-label="Smazat hru">✕</button>`}</td></tr>`;}).join('')}</tbody></table></div>`;
   return h+`</div></div>`;
 }
@@ -2177,7 +2373,7 @@ document.addEventListener('click',async e=>{
     case 'pup':{const i=+t.dataset.i;if(i>0){[pcfg.pl[i-1],pcfg.pl[i]]=[pcfg.pl[i],pcfg.pl[i-1]];pcSave();}break;}
     case 'pshuf':{const q=pcfg.pl;for(let i=q.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[q[i],q[j]]=[q[j],q[i]];}pcSave();break;}
     case 'pgame':if(PG[t.dataset.v]&&PG[t.dataset.v].ok){pcfg.game=t.dataset.v;pcSave();}break;
-    case 'pstart':PGR=pgNew(pcfg.game,pgOpt(pcfg.game),pcfg.pl.slice());pmul=1;pedit=null;plog=false;pgSave();break;
+    case 'pstart':{const g=PG[pcfg.game],n=pcfg.pl.length;if(g.minP&&n<g.minP||g.maxP&&n>g.maxP){flash(g.n+': potřebuje '+(g.minP===g.maxP?'přesně '+g.minP:'aspoň '+g.minP)+' hráče.');return;}}PGR=pgNew(pcfg.game,pgOpt(pcfg.game),pcfg.pl.slice());pmul=1;pedit=null;plog=false;pgSave();break;
     case 'pquit':if(!PGR.darts.length||t.dataset.sure){PGR=null;pedit=null;pgSave();}else{t.dataset.sure='1';t.textContent='Opravdu zahodit?';return;}break;
     case 'pagain':pgFinish(true);return;
     case 'pdone':pgFinish(false);return;
@@ -2187,6 +2383,7 @@ document.addEventListener('click',async e=>{
     case 'pturn':pgTurn();return;
     case 'pedit':{const i=+t.dataset.i;if(pedit===i){pedit=null;pmul=1;}else{pedit=i;const d=pgSeg(PGR.darts[i]);pmul=d.mu===2||d.mu===3?d.mu:1;pscroll=true;}break;}
     case 'pecancel':pedit=null;pmul=1;break;
+    case 'pbk':{const i=+t.dataset.i;if(PGR&&PGR.nums)say('D'+PGR.nums[i],'tajné číslo hráče '+PGR.pl[i]+' – jen pro jeho oči');return;}
     case 'pkre':if(PGR&&PGR.nums&&!PGR.darts.length){PGR.nums[+t.dataset.i]=null;pgSave();}break;
     case 'psel':{pedit=+t.dataset.i;const d=pgSeg(PGR.darts[pedit]);pmul=d.mu===2||d.mu===3?d.mu:1;break;}
     case 'pman':pman=!pman;break;
