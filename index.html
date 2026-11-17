@@ -262,6 +262,7 @@ button.dt{cursor:pointer}
 .sb .tile .v .pips{gap:.18em}.sb .tile .v .pips i{width:.85em;height:.85em;border-width:.12em}
 .sb .tile.kil{background:var(--s2);border-color:var(--s2)}
 .sb .tile.kil .lbl,.sb .tile.kil .v{color:#fff}
+.sb .tile.xr .v{font-size:clamp(18px,21cqi,46px);white-space:normal;line-height:1.05;word-spacing:.1em}
 .sb .tile.kil .v{font-size:32px;font-size:clamp(22px,20cqi,64px);font-style:normal}
 .pgp .tile.kil{border-color:var(--s2);box-shadow:0 0 0 2px var(--s2)}
 .pgp .tile.kil .v,.pgp .tile.kil small b{color:var(--s2)}
@@ -872,7 +873,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 20:11';
+const BUILD='verze 17. 11. 2026, 20:26';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1302,7 +1303,50 @@ function pgOut(st,i){st.pl[i].out=1;st.out[i]=true;(st.el=st.el||[]).push(i);con
 function pgRankOut(st){const al=st.pl.map((_,p)=>p).filter(p=>!st.pl[p].out),el=(st.el||[]).slice().reverse();return al.map(p=>({p,s:st.pl[p].lv!=null?st.pl[p].lv:0,pl:1})).concat(el.map((p,i)=>({p,s:0,pl:al.length+1+i})));}
 // vítěz okamžitě (st.win) a ostatní podle klíče (vyšší = lepší)
 function pgRankWin(st,key){const w=st.win,o=st.pl.map((x,p)=>({p,s:key(x),x})).filter(x=>x.p!==w).sort((a,b)=>b.s-a.s);o.forEach(x=>{x.pl=(w!=null?2:1)+o.filter(y=>y.s>x.s).length;});return (w!=null?[{p:w,s:key(st.pl[w]),pl:1}]:[]).concat(o.map(x=>({p:x.p,s:x.s,pl:x.pl})));}
+// X01: cesta na zavření pro zbývající skóre r a k šipek v ruce (méně šipek = lepší, oblíbené doubly první); null = nejde
+const XOD=[20,16,18,12,10,8,14,19,17,15,13,11,9,7,6,5,4,3,2,1];
+function xoSeg(v){return v>=1&&v<=20?{m:1,n:v}:v===25?{m:1,n:25}:v===50?{m:2,n:25}:v%3===0&&v<=60?{m:3,n:v/3}:v%2===0&&v<=40?{m:2,n:v/2}:null;}
+function xoLbl(q){return q.n===25?(q.m===2?'Bull':'25'):(q.m===1?'':q.m===2?'D':'T')+q.n;}
+function xoRoute(r,k,o){
+  if(!(r>0)||k<1)return null;
+  const F=XOD.map(n=>({m:2,n})).concat([{m:2,n:25}]);if(o==='mo')for(let n=20;n>=1;n--)F.push({m:3,n});
+  if(o==='so'){const q=xoSeg(r);if(q)return [q];}
+  const fv=q=>q.n===25?25*q.m:q.n*q.m,one=v=>F.find(q=>fv(q)===v);
+  let q=one(r);if(q)return [q];if(k<2)return null;
+  // nastřelovací šipka nejdřív single / 25 / triple, double až když jinak nejde
+  const pre=(v,p)=>{const a=v>0?xoSeg(v):null;return a&&(p||a.m!==2)?a:null;};
+  for(const p of [0,1])for(const d of F){const a=pre(r-fv(d),p);if(a)return [a,d];}
+  if(k<3)return null;
+  const S=[];for(let n=20;n>=10;n--)S.push({m:3,n});S.push({m:2,n:25},{m:1,n:25});for(let n=20;n>=1;n--)S.push({m:1,n});
+  for(const p of [0,1])for(const a of S){const v=r-fv(a);if(v<=1)continue;for(const d of F){const b=pre(v-fv(d),p);if(b)return [a,b,d];}}
+  return null;
+}
+function xoLeft(st){return 3-(st.t?st.t.d.length:0);}
+// Ø na 3 šipky včetně rozehraného tahu
+function xoAvg(x,st,p){const c=st.t&&st.t.p===p&&!st.over?st.t.sc||0:0;return x.dn?fN((x.sum+c)/x.dn*3):'–';}
 const PG={
+ xo:{n:'X01',cz:'X01',ok:1,pts:1,desc:'Klasické šipky: každý začíná na 301 / 501 / 701 a body tahu se odečítají. Kdo první zavře přesně na 0, vyhrává. Double out = poslední šipka musí být double (Bull 50 platí), Master out = double nebo triple, Straight out = cokoli. Přetažení (bust) = pod 0, zbytek 1 při double / master out, nebo 0 bez správného zavření – skóre se vrací na začátek tahu a zbytek tahu propadá. Double in = body se začnou počítat až po zásahu doublu. Tabule ukazuje cestu na zavření a terč zvýrazní cíl další šipky.',
+  opt:{t:{l:'Start',v:[301,501,701],d:501},o:{l:'Zavření',v:['do','mo','so'],t:{do:'Double out',mo:'Master out (D/T)',so:'Straight out'},d:'do'},i:{l:'Začátek',v:['si','di'],t:{si:'Straight in',di:'Double in'},d:'si'},r:{l:'Max. kol',v:[0,10,15,20,30],t:{0:'bez limitu',10:'10',15:'15',20:'20',30:'30'},d:0}},
+  // t.sc = body tahu (po bustu 0) – podle nich Ø a 100+/140+/180 ve statistice
+  init:(G)=>({s:G.opt.t||501,in:G.opt.i!=='di',n:0,sum:0,dn:0,hi:0,co:0,bust:0}),
+  dart(st,d,G){const x=st.pl[st.p],t=st.t,o=G.opt.o||'do';if(t.b0==null){t.b0=x.s;t.sc=0;}if(d.s!=='-')x.dn++;if(t.bust||!d.v)return;
+    if(!x.in){if(d.mu!==2){d.note='čeká na double in';return;}x.in=1;}
+    const v=x.s-d.v,fin=o==='so'||(o==='mo'?d.mu>=2:d.mu===2);
+    if(v<0||v===1&&o!=='so'||v===0&&!fin){x.s=t.b0;t.bust=1;t.sc=0;x.bust++;d.fx='BUST';return;}
+    x.s=v;t.sc=t.b0-v;d.fx=v?'−'+d.v:'CHECKOUT';
+    if(!v){x.co=t.sc;x.n++;x.sum+=t.sc;if(t.sc>x.hi)x.hi=t.sc;st.win=st.p;st.over=true;}},
+  turn(st,t){const x=st.pl[t.p];x.n++;x.sum+=t.sc||0;if((t.sc||0)>x.hi)x.hi=t.sc;},
+  rounds:G=>G.opt.r||0,
+  rank:st=>{const w=st.win,o=st.pl.map((x,p)=>({p,s:x.s})).filter(x=>x.p!==w).sort((a,b)=>a.s-b.s);o.forEach(x=>{x.pl=(w!=null?2:1)+o.filter(y=>y.s<x.s).length;});return (w!=null?[{p:w,s:0,pl:1}]:[]).concat(o);},
+  cells:(st,G)=>{const x=st.pl[st.p],R=x.in?xoRoute(x.s,xoLeft(st),G.opt.o||'do'):null;return [{lbl:'Zbývá',v:x.s},{lbl:x.in?'Zavření':'Double in',cls:'xr',v:x.in?(R?R.map(xoLbl).join(' '):'–'):'D?'},{lbl:'Ø 3 šipky',v:xoAvg(x,st,st.p)}];},
+  hl:(st,G)=>{const x=st.pl[st.p];if(!x.in)return null;const R=xoRoute(x.s,xoLeft(st),G.opt.o||'do');if(!R)return {type:'T',n:20};const q=R[0];return q.n===25?{type:'B'}:{type:'SDT'[q.m-1],n:q.n};},
+  hit:d=>d.v>0&&d.fx!=='BUST'&&!d.note,dsub:d=>d.fx||d.note||'–',tt:t=>t.bust?'BUST':t.sc||0,
+  tile:(x,st,G,i)=>({v:x.s,sub:(x.in?'':'čeká na double in · ')+'Ø '+xoAvg(x,st,i)+(x.co?' · zavřel '+x.co:'')}),
+  resH:['Zbývá','Ø 3 šipky','Nejlepší tah','Checkout','Přetažení','Šipek'],res:x=>[x.s,x.dn?fN(x.sum/x.dn*3):'–',x.hi,x.co||'–',x.bust,x.dn],
+  lb:{h:['Her','Výher','% výher','Ø 3 šipky','Nejlepší checkout','Ø šipek na výhru'],
+   key:b=>b.w*1e4+(b.sc.reduce((a,c)=>a+c.x.dn,0)?b.sc.reduce((a,c)=>a+c.x.sum,0)/b.sc.reduce((a,c)=>a+c.x.dn,0)*3:0),
+   row:b=>{const D=b.sc.reduce((a,c)=>a+c.x.dn,0),S=b.sc.reduce((a,c)=>a+c.x.sum,0),W=b.sc.filter(c=>c.pl===1&&c.x.co);return [b.g,b.w,fP(pc(b.w,b.g)),D?fN(S/D*3):'–',Math.max(0,...b.sc.map(c=>c.x.co||0))||'–',W.length?fN(avg(W.map(c=>c.x.dn))):'–'];},
+   note:'Řazeno podle výher, při shodě podle Ø na 3 šipky (přetažený tah = 0 bodů).'}},
  ki:{n:'Killer',cz:'Zabiják',ok:1,minP:2,desc:'Pravidla jako v Autodarts. Každý hráč má své číslo (náhodně, nebo hodem slabší rukou) a začíná s 0 životy. Zásahy svého čísla si životy nabíjíš: single = 1, double = 2, triple = 3. S plným počtem (3–6 podle nastavení) jsi KILLER. Killer zásahy čísla soupeře bere životy (S 1, D 2, T 3; Hit mode může povolit jen doubly / triply), ale nikdy pod nulu – vyřazený je až hráč, kterého někdo trefí, když už má 0 životů. Kdo ztratí byť jediný život, přestává být killerem, dokud si ztracené životy znovu nedobije. Killer, který trefí své číslo, bere životy sám sobě (pod nulu ne, sám se vyřadit nemůže). Straight Off = útočit smí všichni hned od začátku. První kolo „jen životy“ = v 1. kole se nikomu životy neberou. Vyhrává poslední ve hře; po maximálním počtu kol rozhodují životy.',
   opt:{hm:{l:'Hit mode (útok)',v:['n','d','t'],t:{n:'normální (S/D/T)',d:'jen doubly',t:'jen triply'},d:'n'},l:{l:'Životy (= killer)',v:[3,4,5,6],d:3},pk:{l:'Čísla',v:['los','ruka'],t:{los:'náhodně',ruka:'hod slabší rukou'},d:'los'},so:{l:'Straight Off',v:['ne','ano'],t:{ne:'ne',ano:'ano – útočí se hned'},d:'ne'},fr:{l:'První kolo',v:['std','lv'],t:{std:'standard',lv:'jen životy (bez útoků)'},d:'std'},r:{l:'Max. kol',v:[15,20,25,30,50],d:20}},
   // hry s opt.hm = pravidla Autodarts (kiAd); starší hry bez hm mají opt.md (all / dbl / tpl) a hrají se původními pravidly níže
@@ -1827,7 +1871,7 @@ function pgStatsHtml(){
       if(x.game==='cu'){const R=(x.opt&&x.opt.r)||8,c=rec.cu[R];if(!c||r.s>c.s)rec.cu[R]={s:r.s,n:x.pl[r.p],ts:x.ts};}});
     rk.forEach(a=>rk.forEach(b=>{if(a.p===b.p)return;const o=H2H[key(x.pl[a.p])]=H2H[key(x.pl[a.p])]||{},q=o[key(x.pl[b.p])]=o[key(x.pl[b.p])]||{w:0,g:0};q.g++;if(a.pl<b.pl)q.w++;}));
     const SC=!!PG[x.game].pts; // tahy na body (Ø na tah, 100+…) jen z her, kde se sčítají body
-    st.T.forEach(t=>{const s=pp(x.pl[t.p]),v=t.d.reduce((a,d)=>a+d.v,0),bg=s.by[x.game];if(bg){bg.t++;if(SC)bg.pts+=v;}
+    st.T.forEach(t=>{const s=pp(x.pl[t.p]),v=t.sc!=null?t.sc:t.d.reduce((a,d)=>a+d.v,0),bg=s.by[x.game];if(bg){bg.t++;if(SC)bg.pts+=v;}
       t.d.forEach(d=>{if(d.s!=='-'){s.dn++;if(SC)s.dnp++;}if(d.mu===2)s.dd++;if(d.mu===3)s.tt++;if(d.n===25)s.bull++;});
       if(!SC)return;s.t++;s.pts+=v;if(v>s.best)s.best=v;if(v>=180)s.c180++;else if(v>=140)s.c140++;else if(v>=100)s.c100++;
       if(!rec.turn||v>rec.turn.v)rec.turn={v,n:x.pl[t.p],ts:x.ts,d:t.d.map(pgLbl).join(' · ')};});
@@ -1836,7 +1880,7 @@ function pgStatsHtml(){
   const dn=days.size;
   h+=`<p class="muted" style="margin:4px 0 8px">${H.length} ${H.length===1?'hra':H.length<5?'hry':'her'} · ${dn} ${dn===1?'den':dn<5?'dny':'dní'} · ${L.length} ${L.length===1?'hráč':L.length<5?'hráči':'hráčů'}</p>`;
   h+=`<div class="card scroll"><b>Pořadí hráčů</b><table><thead><tr><th>Hráč</th><th>Her</th><th>Výher</th><th>% výher</th><th>Ø místo</th><th>Série výher</th><th>Ø na tah</th><th>Nejlepší tah</th><th>100+</th><th>140+</th><th>180</th></tr></thead><tbody>${L.map((s,i)=>`<tr><td>${i===0&&s.w?'🏆 ':''}<b>${nm(s)}</b></td><td>${s.g}</td><td>${s.w}</td><td>${fP(pc(s.w,s.g))}</td><td>${fN(s.pls/s.g)}</td><td>${s.streak}</td><td>${s.t?fN(s.pts/s.t):'–'}</td><td>${s.best}</td><td>${s.c100}</td><td>${s.c140}</td><td>${s.c180}</td></tr>`).join('')}</tbody></table>
-    <p class="muted" style="margin:6px 0 0">Řazeno podle výher, při shodě podle průměrného umístění. Remíza na 1. místě se počítá jako výhra všem. Ø na tah, nejlepší tah a 100+ (100–139) / 140+ (140–179) / 180 jen z her, kde se sčítají body (Count Up).</p></div>`;
+    <p class="muted" style="margin:6px 0 0">Řazeno podle výher, při shodě podle průměrného umístění. Remíza na 1. místě se počítá jako výhra všem. Ø na tah, nejlepší tah a 100+ (100–139) / 140+ (140–179) / 180 jen z her, kde se sčítají body (Count Up, X01 – přetažený tah = 0).</p></div>`;
   // zápasy na N vítězných (hry se stejným mt.id); hotový zápas = někdo má ft výher
   const MS={};H.forEach(x=>{if(x.mt&&x.mt.ft>1)(MS[x.mt.id]=MS[x.mt.id]||[]).push(x);});const MK=Object.keys(MS);
   if(MK.length){const MW={};let rows='';MK.slice().reverse().forEach(id=>{const a=MS[id],x=a[a.length-1],M=pgMatch(Object.assign({},x,{id:'-'}),null);if(M.win){const q=key(M.win);MW[q]=MW[q]||{n:M.win,w:0};MW[q].w++;}
