@@ -251,6 +251,9 @@ button.dt{cursor:pointer}
 .pips i{display:inline-block;width:.62em;height:.62em;border-radius:50%;border:.1em solid currentColor;box-sizing:border-box}
 .pips i.on{background:currentColor}
 .pgp .tile small .pips{font-size:26px;color:var(--s1)}
+.pgp .tile.kt .v{display:block;font-size:44px;line-height:1.05;margin:2px 0}
+.pgp .tile.kt small{font-size:18px;font-weight:800;color:var(--tx)}
+@media (min-width:768px){.pgp .tile.kt .v{font-size:56px}.pgp .tile.kt small{font-size:20px}}
 .sb .tile .v .pips{gap:.18em}.sb .tile .v .pips i{width:.85em;height:.85em;border-width:.12em}
 .sb .tile.kil{background:var(--s2);border-color:var(--s2)}
 .sb .tile.kil .lbl,.sb .tile.kil .v{color:#fff}
@@ -864,7 +867,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 17. 11. 2026, 11:37';
+const BUILD='verze 17. 11. 2026, 11:54';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1301,7 +1304,8 @@ const PG={
   hit:d=>!!d.fx,dsub:d=>d.fx||'–',tt:t=>t.d.filter(d=>d.fx).length,ttl:'zásahů',
   ev(B,A,G){for(let p=0;p<A.N;p++){if(A.pl[p].out&&!B.pl[p].out){const k=pgShooter(A);return ['Killed!','💀 '+G.pl[p]+(k===p?' se zabil sám':k>=0?' – zabil ho '+G.pl[k]:' vypadává')+' · ve hře '+A.pl.filter(y=>!y.out).length,'kill',G.pl[p]];}if(A.pl[p].k&&!B.pl[p].k)return ['🔪 '+G.pl[p]+' je killer!','teď může brát životy ostatním'];if(B.pl[p].k&&!A.pl[p].k&&!A.pl[p].out)return ['🩸 '+G.pl[p]+' už není killer','musí znovu dobít své číslo'];}return null;},
   cele:(A,G)=>['🏆 '+G.pl[A.rank[0].p],'poslední přeživší · Killer'],
-  tile:(x,st,G)=>{const md=G.opt.md||'dbl',N=md==='all'?3:1,km=md==='all'?x.km:x.k?1:0;return {cls:x.k&&!x.out?'kil':'',v:x.out?'✖':(x.k?'🔪 ':'')+'♥ '+x.lv,sub:(md==='dbl'?'D':md==='tpl'?'T':'')+x.n+' · '+(x.out?'vypadl':x.k?'<b>KILLER</b>':pips(km,N))+(x.kills?' · ubráno '+x.kills+' ♥':'')};},
+  // dlaždice hráče: velké číslo (hned poznáš, čí číslo trefuješ), pod ním životy a cesta ke killerovi / KILLER
+  tile:(x,st,G)=>{const md=G.opt.md||'dbl',N=md==='all'?3:1,km=md==='all'?x.km:x.k?1:0,num=(md==='dbl'?'D':md==='tpl'?'T':'')+x.n;return {cls:'kt'+(x.k&&!x.out?' kil':''),v:x.out?'✖ '+num:(x.k?'🔪 ':'')+num,sub:x.out?'vypadl':'♥ '+x.lv+' · '+(x.k?'<b>KILLER</b>':pips(km,N))+(x.kills?' · ubráno '+x.kills:'')};},
   resH:['Životy','Ubráno životů'],res:x=>[x.out?0:x.lv,x.kills],
   lb:{h:['Her','Výher','% výher','Ubráno životů','Ø na hru'],
    key:b=>b.w*1e4+b.sc.reduce((a,c)=>a+((c.x&&c.x.kills)||0),0)/b.g,
