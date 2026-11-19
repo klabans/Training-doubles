@@ -928,7 +928,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 19. 11. 2026, 17:25';
+const BUILD='verze 19. 11. 2026, 17:40';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1887,8 +1887,8 @@ function pgGameHtml(){
     // s kamerou drží výzva k vytažení místo pořád (skrytá), aby obsah pod ní neposkakoval
     if(hold||cfg.ad)A+=`<div class="note row spread" style="margin:0 0 10px${hold?'':';visibility:hidden'}"${hold?'':' aria-hidden="true"'}><span>🎯 Vytáhni šipky – pak hází <b>${nm(st.p)}</b>.</span><button class="b sm" data-act="pnext"${hold?'':' tabindex="-1"'}>Další hráč ▶</button></div>`;
   }
-  if(!prev&&!st.over)A+=`<div class="pgprev"></div>`; // místo pro předchozí tah, ať se obrazovka po 1. tahu neposune
   if(g.ex)A+=g.ex(st,G,sv);
+  if(!prev&&!st.over)A+=`<div class="pgprev"></div>`; // místo pro předchozí tah (je až pod plochou hry), ať se obrazovka po 1. tahu neposune
   if(prev)A+=`<div class="pgprev"><span class="muted">${st.over?'Poslední':'Předchozí'} tah · <b>${nm(prev.p)}</b>:</span>${prev.d.map(pgChip).join('')}<span class="muted">= ${tv(prev)}${ttl}${prev.res?' · '+esc(prev.res):prev.why?' · '+esc(prev.why):''}</span></div>`;
   const mt=cur&&cur.d.some(d=>d.x!=null)?cur:null; // značky jen pro rozehraný / dohozený tah, po vytažení zmizí
   // s kamerou je terč vidět pořád (stabilní obrazovka), mění se jen značky šipek
