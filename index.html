@@ -110,19 +110,19 @@ body.ad-bad .adpill{border-color:var(--adbad)}body.ad-bad .adpill i{background:v
 .crk td{font-size:24px;font-weight:900;color:var(--s1)}
 .crk .cur{background:color-mix(in srgb,var(--s1) 14%,transparent)}
 .crk tr.dead td,.crk tr.dead th{opacity:.3}
-.ttt{container-type:inline-size;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:min(100%,480px);margin:0 auto 10px}
+.ttt{container-type:inline-size;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:min(100%,640px);margin:0 auto 10px}
 .ttt div{min-width:0;overflow:hidden;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid var(--line);border-radius:12px;background:var(--card);font-weight:900;line-height:1}
-.ttt div b{font-size:clamp(34px,17cqi,88px);line-height:1}
-.ttt div .tn{font-size:clamp(28px,12cqi,64px);color:var(--tx);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.ttt div small{font-size:clamp(14px,5cqi,24px);color:var(--tx2);margin-top:2px}
+.ttt div b{font-size:clamp(34px,17cqi,112px);line-height:1}
+.ttt div .tn{font-size:clamp(28px,12cqi,80px);color:var(--tx);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.ttt div small{font-size:clamp(14px,5cqi,30px);color:var(--tx2);margin-top:2px}
 .ttt .op{border-color:var(--tx3)}
 .ttt .tm{display:flex;gap:.7em;font-size:clamp(13px,4.2cqi,20px)!important;margin-top:.35em!important}.ttt .tm span{display:inline-flex;align-items:center;gap:.2em}.ttt .tm .x{color:var(--s1)}.ttt .tm .o{color:var(--s2)}.ttt .tm .pips{font-size:1em;margin-left:.15em}.ttt .tm .pips i{border-radius:2px}
 .tile.tto .v{color:var(--s2)}.tsv{display:block;width:.8em;height:.8em;transform:rotate(-6deg);margin:0 auto;fill:none;stroke:currentColor;stroke-width:17;stroke-linecap:round;stroke-linejoin:round}.ttt.m3 .tm .sy .tsv{width:1em;height:1em}.sb .tile.ttp .tsv{width:1em;height:1em;margin:0 auto}.pgp .tile.ttp .tsv{margin:.1em auto}
 .sb .tile.ttp .v,body.running .sb .tile.ttp .v{font-size:clamp(40px,46cqi,110px);line-height:.95}
 .pgp .tile.ttp .lbl{display:block;font-size:24px;color:var(--tx)}.pgp .tile.ttp .v{display:block;font-size:64px;line-height:1.05}.pgp .tile.ttp small{font-size:18px;font-weight:800;color:var(--tx2)}
 @media (min-width:768px){.pgp .tile.ttp .lbl{font-size:30px}.pgp .tile.ttp .v{font-size:84px}.pgp .tile.ttp small{font-size:20px}}.pgp .tile.cur.tto{border-color:var(--s2);box-shadow:0 0 0 3px var(--s2)}
-.ttt.m3 .op{flex-direction:row;gap:1.5cqi}.ttt.m3 .op .tn{font-size:12.6cqi;letter-spacing:-.05em;width:calc(2ch - .3em);flex:none;display:flex;justify-content:center}.tbl{display:block;width:1em;height:1em}.ttt.m3 .op .tn .tbl{width:1.1em;height:1.1em;flex:none}.ttt small .tbl{display:inline-block;width:1.6em;height:1.6em;vertical-align:-.4em}
-.ttt.m3 .tm{gap:1.2cqi;font-size:6.2cqi!important;margin:0!important;line-height:1}.ttt.m3 .tm span{flex-direction:column;gap:.18em;font-size:1em}.ttt.m3 .tm .pips{flex-direction:column-reverse;gap:.16em;margin:0;font-size:1em}.ttt.m3 .tm .pips i{width:1em;height:1em;border-width:.13em;border-radius:.14em}.ttt.m3 .tm .sy{font-size:.7em;font-style:normal}
+.ttt.m3 .op{flex-direction:row;gap:1.9cqi}.ttt.m3 .op .tn{font-size:12.6cqi;letter-spacing:-.05em;width:1.12em;flex:none;display:flex;justify-content:center}.tbl{display:block;width:1em;height:1em}.ttt.m3 .op .tn .tbl{width:1.1em;height:1.1em;flex:none}.ttt small .tbl{display:inline-block;width:1.6em;height:1.6em;vertical-align:-.4em}
+.ttt.m3 .tm{gap:1.2cqi;font-size:5.8cqi!important;margin:0!important;line-height:1}.ttt.m3 .tm span{flex-direction:column;gap:.18em;font-size:1em}.ttt.m3 .tm .pips{flex-direction:column-reverse;gap:.16em;margin:0;font-size:1em}.ttt.m3 .tm .pips i{width:1em;height:1em;border-width:.13em;border-radius:.14em}.ttt.m3 .tm .sy{font-size:.7em;font-style:normal}
 .ttt .x{border-color:var(--s1)}.ttt .x b{color:var(--s1)}
 .ttt .o{border-color:var(--s2)}.ttt .o b{color:var(--s2)}
 /* stav Autodarts: aura kolem terče */
@@ -237,7 +237,7 @@ body.running .tabs{margin-bottom:8px}
   body.running .pgd .dt{padding-top:4px;padding-bottom:4px}
   body.running .pgprev{min-height:32px;margin-bottom:6px}
   body.running .pgp .tile{padding:6px 8px}
-  body.running .ttt{max-width:clamp(220px,calc(100vh - 430px),480px)}
+  body.running .ttt{max-width:clamp(260px,calc(100vh - 380px),640px)}
   body.running .crk th,body.running .crk td{padding:1px 6px}
   body.running .crk td{font-size:17px}
   body.running .crk tbody th{font-size:17px}
@@ -928,7 +928,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 19. 11. 2026, 17:05';
+const BUILD='verze 19. 11. 2026, 17:25';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
