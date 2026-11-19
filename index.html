@@ -117,7 +117,8 @@ body.ad-bad .adpill{border-color:var(--adbad)}body.ad-bad .adpill i{background:v
 .ttt div small{font-size:clamp(14px,5cqi,24px);color:var(--tx2);margin-top:2px}
 .ttt .op{border-color:var(--tx3)}
 .ttt .tm{display:flex;gap:.7em;font-size:clamp(13px,4.2cqi,20px)!important;margin-top:.35em!important}.ttt .tm span{display:inline-flex;align-items:center;gap:.2em}.ttt .tm .x{color:var(--s1)}.ttt .tm .o{color:var(--s2)}.ttt .tm .pips{font-size:1em;margin-left:.15em}.ttt .tm .pips i{border-radius:2px}
-.ttt.m3 .op{flex-direction:row;gap:1.8cqi}.ttt.m3 .op .tn{font-size:12.6cqi;letter-spacing:-.05em}.ttt.m3 .op .tn.l4{font-size:8cqi}
+.tile.tto .v{color:var(--s2)}.pgp .tile.cur.tto{border-color:var(--s2);box-shadow:0 0 0 3px var(--s2)}
+.ttt.m3 .op{flex-direction:row;gap:1.5cqi}.ttt.m3 .op .tn{font-size:12.6cqi;letter-spacing:-.05em}.ttt.m3 .op .tn.l4{font-size:8cqi}
 .ttt.m3 .tm{gap:1.2cqi;font-size:6.2cqi!important;margin:0!important;line-height:1}.ttt.m3 .tm span{flex-direction:column;gap:.18em;font-size:1em}.ttt.m3 .tm .pips{flex-direction:column;gap:.16em;margin:0;font-size:1em}.ttt.m3 .tm .pips i{width:1em;height:1em;border-width:.13em;border-radius:.14em}.ttt.m3 .tm .sy{font-size:.7em;font-style:normal}
 .ttt .x{border-color:var(--s1)}.ttt .x b{color:var(--s1)}
 .ttt .o{border-color:var(--s2)}.ttt .o b{color:var(--s2)}
@@ -924,7 +925,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 19. 11. 2026, 14:10';
+const BUILD='verze 19. 11. 2026, 14:40';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1613,12 +1614,12 @@ const PG={
     if(TTL.some(l=>l.every(k=>st.g[k]===st.p))){st.win=st.p;st.over=true;}else if(st.g.every(v=>v>=0))st.over=true;},
   turn(st,t){st.pl[t.p].n++;},
   rank:st=>st.win!=null?[{p:st.win,s:st.pl[st.win].c,pl:1},{p:1-st.win,s:st.pl[1-st.win].c,pl:2}]:st.pl.map((x,p)=>({p,s:x.c,pl:1})),
-  cells:st=>[{lbl:'Hraje za',v:st.p?'○':'✕'},{lbl:'Polí',v:st.pl[st.p].c}],
+  cells:st=>[{lbl:'Hraje za',v:st.p?'○':'✕',cls:st.p?'tto':''},{lbl:'Polí',v:st.pl[st.p].c}],
   // volné pole = velké číslo (čitelné od odhodové čáry), obsazené = velká značka a číslo malé
-  //   u m3 má volné pole pod číslem puntíky zásahů obou hráčů (✕ ●●○ / ○ ●○○)
-  ex(st,G){const g=st.g||Array(9).fill(-1),dbl=G.opt.c==='dbl',m3=G.opt.c==='m3',m=st.m||[],L=n=>n===25?'Bull':(dbl?'D':'')+n;return `<div class="ttt${m3?' m3':''}">${G.grid.map((n,i)=>g[i]<0?`<div class="op"><b class="tn${m3&&n===25?' l4':''}">${L(n)}</b>${m3?`<small class="tm"><span class="x"><em class="sy">✕</em>${pips((m[i]||[0,0])[0],3)}</span><span class="o"><em class="sy">○</em>${pips((m[i]||[0,0])[1],3)}</span></small>`:''}</div>`:`<div class="${g[i]===0?'x':'o'}"><b>${g[i]===0?'✕':'○'}</b><small>${L(n)}</small></div>`).join('')}</div>`;},
+  //   u m3 má volné pole vedle čísla svislé čtverečky zásahů (○ vlevo, ✕ vpravo)
+  ex(st,G){const g=st.g||Array(9).fill(-1),dbl=G.opt.c==='dbl',m3=G.opt.c==='m3',m=st.m||[],L=n=>n===25?'Bull':(dbl?'D':'')+n;return `<div class="ttt${m3?' m3':''}">${G.grid.map((n,i)=>g[i]<0?`<div class="op">${m3?`<small class="tm"><span class="o"><em class="sy">○</em>${pips((m[i]||[0,0])[1],3)}</span></small>`:''}<b class="tn${m3&&n===25?' l4':''}">${L(n)}</b>${m3?`<small class="tm"><span class="x"><em class="sy">✕</em>${pips((m[i]||[0,0])[0],3)}</span></small>`:''}</div>`:`<div class="${g[i]===0?'x':'o'}"><b>${g[i]===0?'✕':'○'}</b><small>${L(n)}</small></div>`).join('')}</div>`;},
   hit:d=>!!(d.ok||d.mk),dsub:d=>d.ok?'✓ pole':d.mk?d.mk+'/3':'–',tt:t=>t.d.filter(d=>d.ok).length,ttl:'polí',
-  tile:(x,st,G,i)=>({v:i?'○':'✕',sub:x.c+' polí'}),
+  tile:(x,st,G,i)=>({v:i?'○':'✕',sub:x.c+' polí',cls:i?'tto':''}),
   resH:['Polí'],res:x=>[x.c],
   lb:{h:['Her','Výher','% výher'],key:b=>b.w*1e4+pc(b.w,b.g),row:b=>[b.g,b.w,fP(pc(b.w,b.g))],note:'Remíza se počítá oběma jako výhra.'}},
  bk:{n:'Blind Killer',cz:'Slepý zabiják',ok:1,minP:2,desc:'Každý hráč dostane tajné číslo – prohlédne si ho sám ťuknutím na „👁 své číslo“, ostatní se nedívají. Všichni hází na doubly: každý zásah doublu čísla nějakého hráče mu vezme život, i když je to tvoje vlastní číslo. Nikdo předem neví, čí číslo trefuje. Vyřazený hráč odkryje své číslo; vyhrává poslední přeživší.',
