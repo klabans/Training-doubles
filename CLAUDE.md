@@ -19,7 +19,7 @@ Stačí otevřít `index.html` v prohlížeči (nebo jakýkoli statický server)
 
 ## Struktura `index.html`
 
-1. `<style>` – základní CSS, breakpointy 768 / 900 / 1000 px.
+1. `<style>` – základní CSS, breakpointy 768 / 900 / 1000 px. Notebooky / nízké široké okno: `@media (min-width:900px) and (max-height:1000px)` s `body.running` zmenší záhlaví, tlačítka a tabuli, velikost terče počítá z výšky okna (`calc(100vh - …)`) a v tréninku dá terč vedle tlačítek (`.gp .card:has(>.bwrap)` jako mřížka). Párty od 900 px = dva nezávislé sloupce `.pgc1` (stav hry + hráči) / `.pgc2` (klávesnice nebo s kamerou terč dopadů + průběh); na mobilu mají `display:contents`. Pod terčem s kamerou je štítek stavu `adPill()` (text `.adpl` mění `adSet`, barva podle `ad-ok/wait/bad`).
 2. První `<script>` v `<head>` – `THEMES` (a = Neon Oche; b = Terč; c = Čistý sport; d = TV turnaj, výchozí – jen nálada TV grafiky, žádná loga/kopie). Každé téma je CSS řetězec + Google Font, aplikuje `applyTheme()`; volba v `localStorage.darts_theme`.
 3. Hlavní `<script>` (sekce oddělené komentáři `/* ---------- … ---------- */`):
    - **konstanty**: `PHASEDEF` (hry s id `w a b r p z c t k f`), `PRESETS`, `LADDERS`, `BOB`, `ROUTE_TAB` + `route()`/`favRoute()` (cesty na zavření).
