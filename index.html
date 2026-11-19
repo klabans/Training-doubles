@@ -117,7 +117,7 @@ body.ad-bad .adpill{border-color:var(--adbad)}body.ad-bad .adpill i{background:v
 .ttt div small{font-size:clamp(14px,5cqi,24px);color:var(--tx2);margin-top:2px}
 .ttt .op{border-color:var(--tx3)}
 .ttt .tm{display:flex;gap:.7em;font-size:clamp(13px,4.2cqi,20px)!important;margin-top:.35em!important}.ttt .tm span{display:inline-flex;align-items:center;gap:.2em}.ttt .tm .x{color:var(--s1)}.ttt .tm .o{color:var(--s2)}.ttt .tm .pips{font-size:1em;margin-left:.15em}.ttt .tm .pips i{border-radius:2px}
-.tile.tto .v{color:var(--s2)}.tsy{display:inline-block;font-style:normal}.tto .tsy{transform:scale(1.45)}
+.tile.tto .v{color:var(--s2)}.tsv{display:block;width:.8em;height:.8em;transform:rotate(-6deg);margin:0 auto;fill:none;stroke:currentColor;stroke-width:17;stroke-linecap:round;stroke-linejoin:round}.ttt.m3 .tm .sy .tsv{width:1em;height:1em}.sb .tile.ttp .tsv{width:1em;height:1em;margin:0 auto}.pgp .tile.ttp .tsv{margin:.1em auto}
 .sb .tile.ttp .v,body.running .sb .tile.ttp .v{font-size:clamp(40px,46cqi,110px);line-height:.95}
 .pgp .tile.ttp .lbl{display:block;font-size:24px;color:var(--tx)}.pgp .tile.ttp .v{display:block;font-size:64px;line-height:1.05}.pgp .tile.ttp small{font-size:18px;font-weight:800;color:var(--tx2)}
 @media (min-width:768px){.pgp .tile.ttp .lbl{font-size:30px}.pgp .tile.ttp .v{font-size:84px}.pgp .tile.ttp small{font-size:20px}}.pgp .tile.cur.tto{border-color:var(--s2);box-shadow:0 0 0 3px var(--s2)}
@@ -928,7 +928,7 @@ const Store={mode:'local',col:null,sessions:[],fallback:false,cloud:false,
 };
 
 /* ---------- účet (Firebase) ---------- */
-const BUILD='verze 19. 11. 2026, 15:20';
+const BUILD='verze 19. 11. 2026, 16:20';
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyBfSBaPb0L6bo3CKua-3812GBQ-xUnwreg",
   authDomain:"klabos-double.firebaseapp.com",
@@ -1332,6 +1332,7 @@ const HI=[15,16,'D',17,18,'T',19,20,'B'];              // Halve It
 const ACS=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,25]; // Around the Clock
 const CDS=[10,11,12,13,14,15,16,17,18,19,20].map(n=>({n,m:3})).concat([{n:25,m:1},{n:25,m:2}]); // Chase the Dragon
 const DK='DONKEY',TTL=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function ttSym(o){return `<svg class="tsv" viewBox="0 0 100 100" role="img" aria-label="${o?'kolečko':'křížek'}">${o?'<path d="M50 14C72 12 88 30 86 52C84 74 66 88 46 86C26 84 13 68 15 47C17 28 31 15 50 14Z"/>':'<path d="M20 18C34 34 50 50 66 66C72 72 78 78 84 84M80 16C66 32 56 44 46 56C36 68 28 76 18 84"/>'}</svg>`;}
 function pips(n,N){let h='<span class="pips" aria-label="'+n+' z '+N+'">';for(let i=0;i<N;i++)h+=`<i class="${i<n?'on':''}"></i>`;return h+'</span>';}
 function hiOk(d,q){if(!d.mu)return false;if(q==='D')return d.mu===2;if(q==='T')return d.mu===3;if(q==='B')return d.n===25;return d.n===q;}
 function hiLbl(q){return q==='D'?'Double':q==='T'?'Triple':q==='B'?'Bull':q;}
@@ -1617,12 +1618,12 @@ const PG={
     if(TTL.some(l=>l.every(k=>st.g[k]===st.p))){st.win=st.p;st.over=true;}else if(st.g.every(v=>v>=0))st.over=true;},
   turn(st,t){st.pl[t.p].n++;},
   rank:st=>st.win!=null?[{p:st.win,s:st.pl[st.win].c,pl:1},{p:1-st.win,s:st.pl[1-st.win].c,pl:2}]:st.pl.map((x,p)=>({p,s:x.c,pl:1})),
-  cells:st=>[{lbl:'Hraje za',v:'<span class="tsy">'+(st.p?'○':'✕')+'</span>',cls:'ttp'+(st.p?' tto':'')},{lbl:'Polí',v:st.pl[st.p].c}],
+  cells:st=>[{lbl:'Hraje za',v:ttSym(st.p),cls:'ttp'+(st.p?' tto':'')},{lbl:'Polí',v:st.pl[st.p].c}],
   // volné pole = velké číslo (čitelné od odhodové čáry), obsazené = velká značka a číslo malé
   //   u m3 má volné pole vedle čísla svislé čtverečky zásahů (○ vlevo, ✕ vpravo)
-  ex(st,G){const g=st.g||Array(9).fill(-1),dbl=G.opt.c==='dbl',m3=G.opt.c==='m3',m=st.m||[],L=n=>n===25?'Bull':(dbl?'D':'')+n;return `<div class="ttt${m3?' m3':''}">${G.grid.map((n,i)=>g[i]<0?`<div class="op">${m3?`<small class="tm"><span class="o"><em class="sy">○</em>${pips((m[i]||[0,0])[1],3)}</span></small>`:''}<b class="tn">${m3&&n===25?'<span class="l4">Bull</span>':L(n)}</b>${m3?`<small class="tm"><span class="x"><em class="sy">✕</em>${pips((m[i]||[0,0])[0],3)}</span></small>`:''}</div>`:`<div class="${g[i]===0?'x':'o'}"><b>${g[i]===0?'✕':'○'}</b><small>${L(n)}</small></div>`).join('')}</div>`;},
+  ex(st,G){const g=st.g||Array(9).fill(-1),dbl=G.opt.c==='dbl',m3=G.opt.c==='m3',m=st.m||[],L=n=>n===25?'Bull':(dbl?'D':'')+n;return `<div class="ttt${m3?' m3':''}">${G.grid.map((n,i)=>g[i]<0?`<div class="op">${m3?`<small class="tm"><span class="o"><em class="sy">${ttSym(1)}</em>${pips((m[i]||[0,0])[1],3)}</span></small>`:''}<b class="tn">${m3&&n===25?'<span class="l4">Bull</span>':L(n)}</b>${m3?`<small class="tm"><span class="x"><em class="sy">${ttSym(0)}</em>${pips((m[i]||[0,0])[0],3)}</span></small>`:''}</div>`:`<div class="${g[i]===0?'x':'o'}"><b>${ttSym(g[i])}</b><small>${L(n)}</small></div>`).join('')}</div>`;},
   hit:d=>!!(d.ok||d.mk),dsub:d=>d.ok?'✓ pole':d.mk?d.mk+'/3':'–',tt:t=>t.d.filter(d=>d.ok).length,ttl:'polí',
-  tile:(x,st,G,i)=>({v:'<span class="tsy">'+(i?'○':'✕')+'</span>',sub:x.c+' polí',cls:'ttp'+(i?' tto':'')}),
+  tile:(x,st,G,i)=>({v:ttSym(i),sub:x.c+' polí',cls:'ttp'+(i?' tto':'')}),
   resH:['Polí'],res:x=>[x.c],
   lb:{h:['Her','Výher','% výher'],key:b=>b.w*1e4+pc(b.w,b.g),row:b=>[b.g,b.w,fP(pc(b.w,b.g))],note:'Remíza se počítá oběma jako výhra.'}},
  bk:{n:'Blind Killer',cz:'Slepý zabiják',ok:1,minP:2,desc:'Každý hráč dostane tajné číslo – prohlédne si ho sám ťuknutím na „👁 své číslo“, ostatní se nedívají. Všichni hází na doubly: každý zásah doublu čísla nějakého hráče mu vezme život, i když je to tvoje vlastní číslo. Nikdo předem neví, čí číslo trefuje. Vyřazený hráč odkryje své číslo; vyhrává poslední přeživší.',
